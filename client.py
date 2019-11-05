@@ -1,17 +1,28 @@
 import tkinter
 import socket
+import threading
 import atexit
+from common import *
 
 FPS = 30
 PERIOD = 1 / FPS
 
 
-def receive_packet():
-    data = sock.recv(2048)
+def process_packet(data):
     protocol_number = int.from_bytes(data[:4], 'little');
-    print(protocol_number)
+    print('Receive packet type', protocol_number)
 
-    root.after(int(1000 * PERIOD), receive_packet)
+    if protocol_number == GET_USER_LIST_RESPONSE:
+        user_count = int.from_bytes(data[4:8], 'little')
+        res = struct.unpack(GetUserListResponse.var_fmt(user_count), data)
+        for i in range(2, user_count + 2):
+            print(res[i].decode('utf-8'))
+
+
+def receive_packet():
+    while True:
+        data = sock.recv(2048)
+        process_packet(data)
 
     
 def close_event():
@@ -19,11 +30,12 @@ def close_event():
 
 
 def set_name():
-    pass
+    sock.send(create_packet(SetUserNameRequest(textbox.get())))
 
 
 def get_users():
-    pass
+    sock.send(create_packet(GetUserListRequest()))
+
 
 if __name__ == '__main__':
     ip, port = input('IP:'), int(input('Port:'))
@@ -42,5 +54,6 @@ if __name__ == '__main__':
 
 
     # root.protocol('WM_DELETE_WINDOW', close_window_event)
-    root.after(int(1000 * PERIOD), receive_packet)
+    receiver = threading.Thread(target=receive_packet)
+    receiver.start()
     root.mainloop()

@@ -15,20 +15,27 @@ def create_packet(packet):
 
 # packet examples
 class SetUserNameRequest:
+    fmt = 'I 16s'
+
     def __init__(self, name):
-        if type(name) != 'str' or len(name) > 16:
+        if type(name) is not str or len(name) > 16:
             raise ValueError
-        self.values = (SET_USER_NAME_REQUEST, name)
-        self.fmt = 'I 16s'
+        self.values = (SET_USER_NAME_REQUEST, name.encode('UTF-8'))
 
 
 class GetUserListRequest:
+    fmt = 'I'
+
     def __init__(self):
         self.values = (GET_USER_LIST_REQUEST,)
-        self.fmt = 'I'
 
 
 class GetUserListResponse:
-    def __init__(self, user_count, names):
+    @classmethod
+    def var_fmt(cls, user_count):
+        return 'I I' + ' 16s' * user_count
+
+    def __init__(self, names):
+        user_count = len(names)
         self.values = (GET_USER_LIST_RESPONSE, user_count) + names
         self.fmt = 'I I' + ' 16s' * user_count

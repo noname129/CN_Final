@@ -1,12 +1,20 @@
 import socket
 import threading
+from common import *
 
 threads = []
 
 
-def process_packet(data):
+def process_packet(client, data):
     protocol_number = int.from_bytes(data[:4], 'little')
-    print(protocol_number)
+    print('Receive packet type', protocol_number, 'from {}:{}'.format(client.ip, client.port))
+
+    if protocol_number == SET_USER_NAME_REQUEST:
+        _, name = struct.unpack(SetUserNameRequest.fmt, data)
+        client.user_name = name.decode('utf-8')
+    elif protocol_number == GET_USER_LIST_REQUEST:
+        names = tuple([client.user_name.encode('utf-8') for client in threads])
+        client.sock.send(create_packet(GetUserListResponse(names)))
 
 
 class ClientThread(threading.Thread):
@@ -16,6 +24,7 @@ class ClientThread(threading.Thread):
         self.ip = ip
         self.port = port
         self.process = process_packet
+        self.user_name = '{}.{}'.format(self.ip, self.port)
 
         print('Connection from {}:{}'.format(self.ip, self.port))
 
@@ -25,7 +34,7 @@ class ClientThread(threading.Thread):
                 data = self.sock.recv(2048)
                 if len(data) == 0:
                     break
-                process_packet(data)
+                self.process(self, data)
         except ConnectionResetError as err:
             print('Error occurred: ', err)
             pass
