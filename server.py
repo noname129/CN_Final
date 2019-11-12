@@ -12,21 +12,26 @@ def process_packet(client, data):
     if protocol_number == SET_USER_NAME_REQUEST:
         _, name = struct.unpack(SetUserNameRequest.fmt, data)
         client.user_name = name.decode('utf-8')
-    elif protocol_number == GET_USER_LIST_REQUEST:
+    elif protocol_number == int(Protocols.send_user_list):
         names = tuple([client.user_name.encode('utf-8') for client in threads])
-        client.sock.send(create_packet(GetUserListResponse(names)))
+        client.sock.send(create_packet(SendUserList(names)))
 
 
 class ClientThread(threading.Thread):
+    next_id = 1
+
     def __init__(self, sock, ip, port):
         threading.Thread.__init__(self)
         self.sock = sock
         self.ip = ip
         self.port = port
         self.process = process_packet
-        self.user_name = '{}.{}'.format(self.ip, self.port)
+        self.id = ClientThread.next_id
+        self.user_name = '{}'.format(self.ip)
 
-        print('Connection from {}:{}'.format(self.ip, self.port))
+        ClientThread.next_id += 1
+
+        print('Connection opened from {}:{}'.format(self.ip, self.port))
 
     def run(self):
         try:
