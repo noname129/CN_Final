@@ -1,6 +1,6 @@
 import socket
 import threading
-from common import *
+from comms.common import *
 
 threads = []
 

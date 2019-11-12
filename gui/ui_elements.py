@@ -4,12 +4,12 @@ Defines common UI Elements that will be used throughout the application.
 
 import tkinter
 import tkinter.ttk
-import client_data
+from data import client_data
 import random
-import multiarray
-import mines
+from util import multiarray
+from game import mines
 
-from utils import tk_all_directions
+from util.utils import tk_all_directions
 
 
 class LobbyDisplay(tkinter.Frame):
@@ -195,4 +195,4 @@ def main2():
 
 
 if __name__ == "__main__":
-    main2()
+    main()

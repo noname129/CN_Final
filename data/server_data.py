@@ -4,7 +4,8 @@ For data that needs to be sent to the client, a matching class will be found in 
 '''
 
 import enum
-import client_data
+from data import client_data
+
 
 class Player:
     name="playerrr"
@@ -25,7 +26,7 @@ class GameInstance:
     instance_id=123
 
     def convert_to_client_version(self):
-        gi=client_data.GameInstance()
+        gi= client_data.GameInstance()
         # TODO implement
 
 

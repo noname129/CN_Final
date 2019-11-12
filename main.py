@@ -6,6 +6,6 @@ if len(sys.argv)>1 and sys.argv[1]=="-server":
     pass
     #TODO server here
 else:
-    import gui
+    import gui.client_ui
 
-    gui.start()
+    gui.client_ui.start()
