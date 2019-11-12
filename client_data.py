@@ -4,8 +4,6 @@ Most types here will mirror the types in server_data.py
 but will have a pickle-able, immutable form - suitable for transfer through the network.
 '''
 
-import callbacks
-
 
 class GameInstance:
     '''

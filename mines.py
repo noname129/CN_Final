@@ -1,5 +1,5 @@
 import enum
-from tuples import Tuples
+from utils import Tuples
 import random
 import multiarray
 
