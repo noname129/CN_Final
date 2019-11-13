@@ -2,12 +2,11 @@
 Actual UI design & definition
 '''
 
-import tkinter
 import tkinter.messagebox
-import ui_elements
+from gui import ui_elements
 import time
-from utils import *
-import client
+from util.utils import *
+from comms import client
 
 # The almighty root window
 _tk = None

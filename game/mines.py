@@ -1,7 +1,7 @@
 import enum
-from utils import Tuples
+from util.utils import Tuples
 import random
-import multiarray
+from util import multiarray
 
 
 class CellState(enum.Enum):
