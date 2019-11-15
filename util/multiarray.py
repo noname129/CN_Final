@@ -33,21 +33,39 @@ class MultiDimArray:
         ...
     '''
 
-    def __init__(self, *dimensions, fill=None, data=None):
-        if not dimensions:  # empty
-            dimensions = [0]  # 1D array with 0 size - basically an empty array.
+    def __init__(self, *dimensions, fill=None, data=None, copytarget=None):
+        if copytarget is not None:
+            # Copy constructor
+            self._dimensions=copytarget._dimensions
+            self._num_elements=copytarget._num_elements
+            self._data=list(copytarget._data)
 
-        self._dimensions = tuple(dimensions) # dimension will never change, so change to tuple.
-
-        self._num_elements = _multiply_all_elements(dimensions)
-
-        if data is not None:
-            if len(data) != self._num_elements:
-                raise ValueError("Number of data does not match the dimensions!")
-            else:
-                self._data = data
         else:
-            self._data = [fill] * self._num_elements
+            if not dimensions:  # empty
+                dimensions = [0]  # 1D array with 0 size - basically an empty array.
+
+            self._dimensions = tuple(dimensions) # dimension will never change, so change to tuple.
+
+            self._num_elements = _multiply_all_elements(dimensions)
+
+            if data is not None:
+                if len(data) != self._num_elements:
+                    raise ValueError("Number of data does not match the dimensions!")
+                else:
+                    self._data = data
+            else:
+                self._data = [fill] * self._num_elements
+
+    def shallow_copy(self):
+        return MultiDimArray(copytarget=self)
+
+    def in_bounds(self,coords):
+        if len(coords) != len(self._dimensions):
+            raise InvalidCoordinatesException("mismatch")
+        for i in range(len(coords)):
+            if coords[i] < 0 or coords[i] >= self._dimensions[i]:
+                return False
+        return True
 
     def _coord_to_index(self, coords):
         # Coordinates to index

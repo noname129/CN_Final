@@ -195,17 +195,24 @@ class DefaultSpriteProvider(SpriteProvider):
             print(filename)
             filepath=os.path.join(path,filename)
             self._data[filename]=tkinter.PhotoImage(file=filepath)
+    @classmethod
+    def _pidx_to_letter(cls,pidx):
+        if pidx<1 or pidx>4:
+            raise Exception("Invalid Player Index of "+str(pidx))
+        return ["A","B","C","D"][pidx-1]
     def provide_sprite_for(self,cell):
         if cell.state == mines.CellState.locked:
             return self._data["nC.gif"]
+
+        letter=self._pidx_to_letter(cell.owner)
         if cell.state == mines.CellState.clickable:
-            return self._data["AC.gif"]
+            return self._data[letter+"C.gif"]
         if cell.state==mines.CellState.clicked:
             if cell.is_mine:
-                return self._data["AM.gif"]
-            return self._data["A{}.gif".format(cell.number)]
+                return self._data[letter+"M.gif"]
+            return self._data["{}{}.gif".format(letter,cell.number)]
         if cell.state==mines.CellState.flagged:
-            return self._data["AF.gif"]
+            return self._data[letter+"F.gif"]
         raise Exception("sprite error")
 
 
@@ -262,7 +269,6 @@ class MineDisplay2(tkinter.Frame):
         self._canvas_ids=dict()
 
     def _refresh_cell(self, coords):
-        print("mf2 refresh",coords)
         if self._minefield is None:
             return
         if coords is None:
@@ -273,6 +279,87 @@ class MineDisplay2(tkinter.Frame):
             self._canvas.delete(self._canvas_ids[coords])
 
         cell=self._minefield[coords]
+        bmp=self._sp.provide_sprite_for(cell)
+        bmpsize=self._ss
+
+        center_coords=Tuples.add(coords,(0.5,0.5))
+        canvas_coords=Tuples.element_wise_mult(bmpsize,center_coords)
+        objid=self._canvas.create_image(canvas_coords,image=bmp)
+        self._canvas_ids[coords]=objid
+
+class MineDisplay3(tkinter.Frame):
+    '''
+    A MineDisplay, for use with MineManager and the immutable mine data structures.
+    '''
+    def __init__(self,root,sprite_provider,mine_manager,*args,**kwargs):
+        super().__init__(root,*args,**kwargs)
+        self._canvas=tkinter.Canvas(self)
+        self._sp=sprite_provider
+        self._ss=sprite_provider.sprite_size()
+
+        self._canvas.pack()
+        self._canvas_ids=dict()
+
+        self._mine_manager=mine_manager #MineFieldEventStack
+        self._change_listener = lambda x: self._refresh_field()
+        self._mine_manager.add_update_callback(self._change_listener)
+
+        self._canvas.bind("<Button-1>", self._click_handler)
+        self._canvas.bind("<Button-3>", self._click_handler)
+
+        self._field_state_cache=None
+
+    def _click_handler(self,evt):
+        rawcoords=(evt.x,evt.y)
+        cellcoords=Tuples.element_wise_div(rawcoords,self._ss)
+        cellintcoords=Tuples.floor(cellcoords)
+        if evt.num==1:
+            btn=1
+        elif evt.num==3:
+            btn=2
+        else:
+            return
+        self._mine_manager.user_input(cellintcoords,btn)
+
+    def _set_dimensions(self, x, y):
+        self._all_delete()
+        size = Tuples.element_wise_mult(self._ss,(x,y))
+        self._canvas.configure(width=size[0],height=size[1])
+
+    def _all_delete(self):
+        for i in self._canvas_ids:
+            self._canvas.delete(self._canvas_ids[i])
+        self._canvas_ids=dict()
+
+    def _refresh_field(self):
+        old_state=self._field_state_cache
+        new_state=self._mine_manager.get_state()
+        self._field_state_cache=new_state
+
+        if new_state is None:
+            return
+
+        cells_to_update=[]
+        if (old_state is None) or (old_state.dimensions != new_state.dimensions):
+            # dimensions changed - refresh everything
+            self._set_dimensions(*(new_state.dimensions))
+            cells_to_update=list(new_state.indices()) # every cell
+        else:
+            for coords in old_state:
+                if old_state[coords] != new_state[coords]:
+                    cells_to_update.append(coords)
+
+
+        for coords in cells_to_update:
+            self._refresh_single_cell(new_state, coords)
+
+
+    def _refresh_single_cell(self, minefieldstate, coords):
+
+        if coords in self._canvas_ids:
+            self._canvas.delete(self._canvas_ids[coords])
+
+        cell=minefieldstate[coords]
         bmp=self._sp.provide_sprite_for(cell)
         bmpsize=self._ss
 
@@ -292,6 +379,28 @@ def main():
 
     root.mainloop()
 
+def main3():
+    root = tkinter.Tk()
+    mm=mines.MineManager(1)
+
+    md = MineDisplay3(root,DefaultSpriteProvider("sprites/",(16,16)),mm)
+    md.pack()
+
+    mf = mines.MineField.generate_symmetrical(50, 25, 0.15)
+    mfs=mines.MineFieldState.from_minefield(mf)
+    mm.server_sync(mfs)
+
+    pidx=1
+    def btncmd():
+        nonlocal pidx
+        pidx=(pidx)%2+1
+        mm.debug_change_pidx(pidx)
+        btn.configure(text="On side: {}".format(pidx))
+    btn=tkinter.Button(root,text="Switch sides",command=btncmd)
+    btn.pack()
+
+
+    root.mainloop()
 
 def main2():
     tk = tkinter.Tk()
@@ -309,4 +418,4 @@ def main2():
 
 
 if __name__ == "__main__":
-    main()
+    main3()
