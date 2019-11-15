@@ -1,4 +1,5 @@
 import tkinter
+import math
 
 tk_all_directions=(tkinter.W,tkinter.E,tkinter.N,tkinter.S)
 
@@ -39,12 +40,24 @@ class Tuples:
         return cls.forelem(a, lambda x: x * n)
 
     @classmethod
+    def element_wise_mult(cls,a,b):
+        return cls.forelem2(a,b,lambda x,y:x*y)
+
+    @classmethod
+    def element_wise_div(cls, a, b):
+        return cls.forelem2(a, b, lambda x, y: x / y)
+
+    @classmethod
     def div(cls, a, n):
         return cls.mult(a, 1 / n)
 
     @classmethod
     def round(cls, a):
         return cls.forelem(a, lambda x: round(x))
+
+    @classmethod
+    def floor(cls,a):
+        return cls.forelem(a,lambda x:math.floor(x))
 
 
 

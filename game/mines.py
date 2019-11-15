@@ -8,8 +8,9 @@ class CellState(enum.Enum):
     '''
     Enum of possible cell states
     '''
-    hidden = enum.auto()
-    uncovered = enum.auto()
+    locked = enum.auto()
+    clickable=enum.auto()
+    clicked = enum.auto()
     flagged = enum.auto()
 
 
@@ -18,8 +19,11 @@ class Cell:
     Class representing a single cell
     '''
     def __init__(self):
-        self.state = CellState.hidden  # hidden, uncovered, flagged
-        self.priority = None  # Player entity that has the priority over this cell. Not yet used.
+        self.state = CellState.locked # locked/clickable/cliucked/flagged
+        # Player entity that has the priority over this cell.
+        # for clicked / flagged cells, this is the player that clicked the cell.
+        # for clickable cells, this is the player that can click the cell.
+        self.owner = None
         self.is_mine = False  # is this a mine?
         self.number = -1  # Number of adjacent mines
 
@@ -142,17 +146,36 @@ class MineField:
 
     def _uncover(self, coords):
         # Uncover a cell
-        self._data[coords].state = CellState.uncovered
+        self._data[coords].state = CellState.clicked
         self._call_change_listeners(coords)
         if self._data[coords].number == 0:
             # Auto-Expand
             for delta in _neighbor_deltas:
                 newcoords = Tuples.add(coords, delta)
                 try:
-                    if self._data[newcoords].state == CellState.hidden:
+                    if self._data[newcoords].state in (CellState.clickable, CellState.locked):
                         self._uncover(newcoords)
                 except multiarray.InvalidCoordinatesException:
                     pass
+    def _uncover_norecursion(self, initial_coords):
+        uncover_queue=[]
+        uncover_queue.append(initial_coords)
+        # Uncover a cell
+        while uncover_queue:
+            coords=uncover_queue.pop(0)
+            self._data[coords].state = CellState.clicked
+            self._call_change_listeners(coords)
+            if self._data[coords].number == 0:
+                # Auto-Expand
+                for delta in _neighbor_deltas:
+                    newcoords = Tuples.add(coords, delta)
+                    if newcoords in uncover_queue:
+                        continue # no duplicates
+                    try:
+                        if self._data[newcoords].state in (CellState.clickable, CellState.locked):
+                            uncover_queue.append(newcoords)
+                    except multiarray.InvalidCoordinatesException:
+                        pass
 
     def click(self, coords, button):
         '''
@@ -164,7 +187,7 @@ class MineField:
         '''
         print("click", button, coords)
         if button == 1:
-            self._uncover(coords)
+            self._uncover_norecursion(coords)
 
 
         elif button == 2:
