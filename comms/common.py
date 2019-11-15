@@ -1,5 +1,6 @@
 import struct
 import enum
+import json
 
 # constant fields
 SET_USER_NAME_REQUEST = 1
@@ -8,8 +9,10 @@ GET_USER_LIST_RESPONSE = 3
 
 
 class Protocols(enum.IntEnum):
-    set_user_name_request = enum.auto()
-    send_user_list = enum.auto()
+    login_request = enum.auto()
+    login_response = enum.auto()
+    get_game_list_request = enum.auto()
+    get_game_list_response = enum.auto()
     create_room_request = enum.auto()
     create_room_response = enum.auto()
     join_room_request = enum.auto()
@@ -19,40 +22,49 @@ class Protocols(enum.IntEnum):
     start_game = enum.auto()
 
 
-def create_packet(packet):
+def create_ingame_packet(packet):
     values = packet.values
     fmt = packet.fmt
     packer = struct.Struct(fmt)
     return packer.pack(*values)
 
 
-# packet examples
-class SetUserNameRequest:
-    fmt = 'I 16s'
-
-    def __init__(self, name):
-        if type(name) is not str or len(name) > 16:
-            raise ValueError
-        self.values = (SET_USER_NAME_REQUEST, name.encode('UTF-8'))
+def create_lobby_packet(packet):
+    return json.dumps(packet.values).encode('utf-8')
 
 
-class GetUserListRequest:
-    fmt = 'I'
+# ========================= lobby packets =========================
+class LoginRequest:
+    def __init__(self, user_name):
+        self.values = {
+            'protocol': int(Protocols.login_request),
+            'userName': user_name
+        }
 
+
+class LoginResponse:
+    def __init__(self, code):
+        self.values = {
+            'protocol': int(Protocols.login_response),
+            'code': code
+        }
+
+
+class GetGameListRequest:
     def __init__(self):
-        self.values = (GET_USER_LIST_REQUEST,)
+        self.values = {
+            'protocol': int(Protocols.get_game_list_request)
+        }
 
 
-class SendUserList:
-    @classmethod
-    def var_fmt(cls, user_count):
-        return 'I I' + ' 16s' * user_count
+class GetGameListResponse:
+    def __init__(self, waiting_game_list):
+        self.values = {
+            'protocol': int(Protocols.get_game_list_response),
+            'gameList': waiting_game_list
+        }
 
-    def __init__(self, names):
-        user_count = len(names)
-        self.values = (GET_USER_LIST_RESPONSE, user_count) + names
-        self.fmt = 'I I' + ' 16s' * user_count
-
+# ========================= belows are not refactored yet =========================
 
 class CreateRoomRequest:
     fmt = 'I I I'
