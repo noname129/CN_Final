@@ -201,6 +201,8 @@ class DefaultSpriteProvider(SpriteProvider):
         if cell.state == mines.CellState.clickable:
             return self._data["AC.gif"]
         if cell.state==mines.CellState.clicked:
+            if cell.is_mine:
+                return self._data["AM.gif"]
             return self._data["A{}.gif".format(cell.number)]
         if cell.state==mines.CellState.flagged:
             return self._data["AF.gif"]
@@ -282,10 +284,10 @@ class MineDisplay2(tkinter.Frame):
 def main():
     root = tkinter.Tk()
 
-    md = MineDisplay2(root,DefaultSpriteProvider("sprites/",(12,12)))
+    md = MineDisplay2(root,DefaultSpriteProvider("sprites/",(16,16)))
     md.pack()
 
-    mf = mines.MineField.generate_symmetrical(140, 80, 0.05)
+    mf = mines.MineField.generate_symmetrical(100, 50, 0.05)
     md.set_minefield(mf)
 
     root.mainloop()
