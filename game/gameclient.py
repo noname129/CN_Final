@@ -1,4 +1,6 @@
 from data import client_data
+import comms.client
+from comms.common import *
 def login(ip, port, name, cb_success, cb_fail):
     '''
     Make a login request using the specified ip, port, and name.
@@ -8,8 +10,14 @@ def login(ip, port, name, cb_success, cb_fail):
     '''
     # TODO implement
 
+    connection_attempt = comms.client.connect(ip, port, name)
+    if connection_attempt != 0:
+        cb_fail(connection_attempt)
+    else:
+        comms.client.send_packet(create_lobby_packet(LoginRequest(user_name=name)))
+        comms.client.cb_lists[Protocols.login_response].put_nowait((cb_success, cb_fail))
+
     print("STUB: GameClient.login")
-    cb_success()
 
 
 def fetch_game_list(cb_success, cb_fail):

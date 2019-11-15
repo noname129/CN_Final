@@ -6,7 +6,7 @@ import tkinter.messagebox
 from gui import ui_elements
 import time
 from util.utils import *
-from comms import client
+from game import gameclient
 
 # The almighty root window
 _tk = None
@@ -106,8 +106,8 @@ def _display_login():
         name = name_input_VAR.get()
         ip = addr_input_VAR.get()
         port = port_input_VAR.get()
-        client.login(
-            ip, port, name,
+        gameclient.login(
+            ip, int(port), name,
             success_callback, fail_callback
         )
 
@@ -139,7 +139,7 @@ def _display_lobby():
         tkinter.messagebox.showerror("Error", msg)
 
     def refresh():
-        client.fetch_game_list(
+        gameclient.fetch_game_list(
             refresh_success,
             refresh_fail
         )
@@ -160,7 +160,7 @@ def _display_lobby():
         if gi is None:
             tkinter.messagebox.showerror("Error", "Select a game first you doofus")
             return
-        client.join_game(gi.instance_id, join_success, join_fail)
+        gameclient.join_game(gi.instance_id, join_success, join_fail)
 
     joinbtn.configure(command=join)
 
