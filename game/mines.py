@@ -174,7 +174,7 @@ class MineFieldState:
 
         if minecount==data[center_coords].number:
             for coords in valid_coords:
-                cls._flag(data,coords,player_index)
+                cls._uncover(data,coords,player_index)
 
     @classmethod
     def _flag(cls,data,coords,player_index):

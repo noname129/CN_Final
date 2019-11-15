@@ -305,20 +305,33 @@ class MineDisplay3(tkinter.Frame):
         self._mine_manager.add_update_callback(self._change_listener)
 
         self._canvas.bind("<Button-1>", self._click_handler)
+        self._canvas.bind("<ButtonRelease-1>", self._click_handler)
         self._canvas.bind("<Button-3>", self._click_handler)
+        self._canvas.bind("<ButtonRelease-3>", self._click_handler)
+
+        # Bit 0 (LSB) = LMB was clicked
+        # Bit 1 = RMB was clicked
+        self._current_click_type=0
 
         self._field_state_cache=None
 
     def _click_handler(self,evt):
-        rawcoords=(evt.x,evt.y)
+        #print(evt.x,evt.y,evt.num,evt.type,type(evt.type))
+        if evt.type==tkinter.EventType.ButtonPress:
+            if evt.num==1:
+                self._current_click_type |= 1
+            elif evt.num==3:
+                self._current_click_type |= 2
+        elif evt.type==tkinter.EventType.ButtonRelease:
+            if self._current_click_type==0:
+                pass
+            else:
+                self._consume_click(evt.x,evt.y,self._current_click_type)
+                self._current_click_type = 0
+    def _consume_click(self,x,y,btn):
+        rawcoords=(x,y)
         cellcoords=Tuples.element_wise_div(rawcoords,self._ss)
         cellintcoords=Tuples.floor(cellcoords)
-        if evt.num==1:
-            btn=1
-        elif evt.num==3:
-            btn=2
-        else:
-            return
         self._mine_manager.user_input(cellintcoords,btn)
 
     def _set_dimensions(self, x, y):
