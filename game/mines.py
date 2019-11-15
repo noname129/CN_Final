@@ -17,24 +17,15 @@ class CellState(enum.Enum):
     flagged = enum.auto()
 
 
-class Cell:
-    '''
-    Class representing a single cell
-    '''
-    def __init__(self):
-        self.state = CellState.locked # locked/clickable/cliucked/flagged
-
-        # for clicked / flagged cells, this is the player index that clicked the cell.
-        # for clickable cells, this is the player index that can click the cell.
-        self.owner = -1
-        self.is_mine = False  # is this a mine?
-        self.number = -1  # Number of adjacent mines
-
-
 class ImmutableCell():
     '''
-    Same as the Cell class, but immutable.
-    For use with MineFieldState, an another immutable class.
+    Class representing a single cell. Immutable!
+
+    state:   locked/clickable/cliucked/flagged
+    owner:   for clicked / flagged cells, this is the player index that clicked the cell.
+             for clickable cells, this is the player index that can click the cell.
+    is_mine: is this a mine?
+    number:  Number of adjacent mines
     '''
     def __init__(self, state, owner, is_mine, number):
         self._state=state
@@ -302,7 +293,7 @@ class MineManager(util.utils.CallbackEnabledClass):
             self._recalculate_cache()
         return self._state_cache
 
-class MineField:
+class MineFieldGenerator:
     @classmethod
     def generate_pure_random(cls, x, y, ratio):
         '''
@@ -316,7 +307,7 @@ class MineField:
         data = multiarray.MultiDimArray(x, y)
         for coords in data:
             data[coords] = (random.random() < ratio)
-        return MineField(data)
+        return cls.generate_from_minemap(data)
 
     @classmethod
     def generate_symmetrical(cls, x, y, ratio):
@@ -341,134 +332,54 @@ class MineField:
             else:  # there is data at the other end - copy that
                 data[coords] = data[reflected]
 
-        return MineField(data)
+        return cls.generate_from_minemap(data)
 
-    def __init__(self, data):
+    @classmethod
+    def generate_from_minemap(cls, minemap):
         '''
         Initialize a minefield.
         data is a multiarray.MultiDimArray with boolean values, with dimension x,y.
         A value of True means a mine is present at that coordinates.
         '''
 
-        # the Cells are also stored in a MultiDimArray, with same dimensions as the source data.
-        self._data = multiarray.MultiDimArray(*data.dimensions)
 
-        self._change_listeners = list()
+        # Before doing anything, calculate the adjacent mine numbers
+        numbers = multiarray.MultiDimArray(*minemap.dimensions)
 
-        for coords in data:
-            newcell = Cell()
-            if data[coords]:  # a mine is present
-                newcell.is_mine = True
-            self._data[coords] = newcell
-
-        self._populate_numbers()
-
-        for i in range(self._data.y):
-            self._data[0,i].owner=1
-            self._data[0, i].state=CellState.clickable
-            self._data[self._data.x-1,i].owner = 2
-            self._data[self._data.x-1, i].state = CellState.clickable
-
-    def add_change_listener(self, func):
-        '''
-        Add an event listener that will be notified whenever a cell changes.
-        The supplied function will take a single argument, a 2D tuple of the coordinates of the updated cell.
-        The aforementioned argument may be None; in that case the entire minefield must be updated.
-        '''
-        self._change_listeners.append(func)
-
-    def remove_change_listener(self, func):
-        self._change_listeners.remove(func)
-
-    def _call_change_listeners(self, coords):
-        for i in self._change_listeners:
-            i(coords)
-
-    def _populate_numbers(self):
-        # calculate surrounding number of mines
-        for coords in self:
+        for coords in minemap:
             count = 0
             for delta in _neighbor_deltas:
-                try:
-                    if self[Tuples.add(coords, delta)].is_mine:
-                        count += 1
-                except multiarray.InvalidCoordinatesException:
-                    pass
-            self[coords].number = count
+                deltacoords=Tuples.add(coords, delta)
+                if not minemap.in_bounds(deltacoords):
+                    continue
+                if minemap[deltacoords]:
+                    count += 1
 
-            if self[coords].is_mine:
-                self[coords].number = "X"
+            numbers[coords] = count
 
-        self._call_change_listeners(None)
+        # the Cells are also stored in a MultiDimArray, with same dimensions as the source data.
+        data = multiarray.MultiDimArray(*minemap.dimensions)
 
-    def __getitem__(self, coords):
-        return self._data[coords]
+        # Fill in with ImmutableCells
+        for coords in minemap:
+            newcell = ImmutableCell(
+                state=CellState.locked,
+                owner=None,
+                is_mine=minemap[coords],
+                number=numbers[coords]
+            )
+            data[coords] = newcell
 
-    def __iter__(self):
-        return self._data.__iter__()
+        # Open up edges
+        for i in range(data.y):
+            data[0,i]=data[0,i].modify(
+                owner=1,
+                state=CellState.clickable
+            )
+            data[data.x-1, i] = data[data.x-1, i].modify(
+                owner=2,
+                state=CellState.clickable
+            )
 
-    @property
-    def x(self):
-        '''
-        X dimensions.
-        '''
-        return self._data.x
+        return MineFieldState(data)
 
-    @property
-    def y(self):
-        '''
-        Y dimensions.
-        '''
-        return self._data.y
-
-    def _uncover(self, coords):
-        # Uncover a cell
-        self._data[coords].state = CellState.clicked
-        self._call_change_listeners(coords)
-        if self._data[coords].number == 0:
-            # Auto-Expand
-            for delta in _neighbor_deltas:
-                newcoords = Tuples.add(coords, delta)
-                try:
-                    if self._data[newcoords].state in (CellState.clickable, CellState.locked):
-                        self._uncover(newcoords)
-                except multiarray.InvalidCoordinatesException:
-                    pass
-    def _uncover_norecursion(self, initial_coords):
-        uncover_queue=[]
-        uncover_queue.append(initial_coords)
-        # Uncover a cell
-        while uncover_queue:
-            coords=uncover_queue.pop(0)
-            self._data[coords].state = CellState.clicked
-            self._call_change_listeners(coords)
-            if self._data[coords].number == 0:
-                # Auto-Expand
-                for delta in _neighbor_deltas:
-                    newcoords = Tuples.add(coords, delta)
-                    if newcoords in uncover_queue:
-                        continue # no duplicates
-                    try:
-                        if self._data[newcoords].state in (CellState.clickable, CellState.locked):
-                            uncover_queue.append(newcoords)
-                    except multiarray.InvalidCoordinatesException:
-                        pass
-
-    def click(self, coords, button):
-        '''
-        Click a cell in location specified by coords.
-        button needs to be 1, 2, or 3.
-        1 = Left click, uncovers a cell.
-        2 = Right click, flags a cell.
-        3 = L+R click, uncovers all adjacent cells if possible
-        '''
-        print("click", button, coords)
-        if button == 1:
-            self._uncover_norecursion(coords)
-
-
-        elif button == 2:
-            self._data[coords].state = CellState.flagged
-            self._call_change_listeners(coords)
-
-        # TODO button 3 logic
