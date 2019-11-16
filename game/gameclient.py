@@ -34,6 +34,19 @@ def fetch_game_list(cb_success, cb_fail):
     print("STUB: GameClient.fetch_game_list")
     # TODO implement
 
+def create_game(game_room_params,cb_success,cb_fail):
+    '''
+    Create a game, using the parameters supplied in game_room_params (instance of GameRoomParameters)
+    One of two callback functions will be called:
+      cb_success(instance_id): The instance ID of the created room.
+                               The client then may try to join the room immediately.
+      cb_fail(msg): Failure. reason in msg.
+    '''
+
+    print("STUB: GameClient.create_game")
+    # TODO implement
+    cb_success(0)
+
 def join_game(gid,cb_success, cb_fail):
     '''
     Request to join a game, specified by gid.

@@ -1,12 +1,14 @@
 '''
 Actual UI design & definition
 '''
-
+import tkinter
+import tkinter.ttk
 import tkinter.messagebox
 from gui import ui_elements
 import time
 from util.utils import *
 from game import gameclient
+from data import client_data
 
 # The almighty root window
 _tk = None
@@ -132,6 +134,9 @@ def _display_lobby():
     joinbtn = tkinter.Button(root, text="Join")
     joinbtn.grid(row=3, column=1, sticky=tk_all_directions)
 
+    createbtn = tkinter.Button(root, text="Create room")
+    createbtn.grid(row=4, column=1, sticky=tk_all_directions)
+
     def refresh_success(data):
         lobbydisplay.new_data(data)
 
@@ -163,6 +168,123 @@ def _display_lobby():
         gameclient.join_game(gi.instance_id, join_success, join_fail)
 
     joinbtn.configure(command=join)
+
+
+    def create_success(room_id):
+        refresh()
+    createbtn.configure(command=lambda:_display_room_creation(create_success))
+
+
+def _display_room_creation(success_cb):
+    print("UI: roomcreate")
+    root = tkinter.Toplevel()
+    root.title("SWEEPERS game create")
+
+    root.columnconfigure(2,weight=1)
+
+    players_label=tkinter.Label(root,text="Number of players")
+    players_label.grid(row=1, column=1)
+
+    players_radiobutton=tkinter.Frame(root)
+    players_radiobutton_VAR=tkinter.StringVar()
+    # INTERNAL BUG IN TKINTER
+    # Below set() should make the radiobutton select the first button but doesn't.
+    # However, inserting below code
+    # root.after(10000, lambda: print(players_radiobutton_VAR.get()))
+    # here makes it work for some reason.
+    # Windows 10, win32, python 3.7.2
+    players_radiobutton_VAR.set(2)
+    players_radiobutton_2=tkinter.Radiobutton(players_radiobutton,
+                                              text="2",
+                                              variable=players_radiobutton_VAR,
+                                              value=2)
+    players_radiobutton_2.grid(column=1,row=1)
+    players_radiobutton_4 = tkinter.Radiobutton(players_radiobutton,
+                                                text="4",
+                                                variable=players_radiobutton_VAR,
+                                                value=4)
+    players_radiobutton_4.grid(column=2,row=1)
+    players_radiobutton.grid(row=1,column=2)
+
+
+    name_label=tkinter.Label(root,text="Name")
+    name_label.grid(row=2,column=1)
+
+    name_input_VAR=tkinter.StringVar()
+    name_input=tkinter.Entry(root,textvariable=name_input_VAR)
+    name_input.grid(row=2,column=2)
+
+    fieldsize_label=tkinter.Label(root,text="Field Size")
+    fieldsize_label.grid(row=3,column=1)
+
+    fieldsize_spinboxes=tkinter.Frame(root)
+    fieldsize_spinbox_x_VAR=tkinter.StringVar()
+    fieldsize_spinbox_x_VAR.set(40)
+    fieldsize_spinbox_x=tkinter.Spinbox(fieldsize_spinboxes,
+                                        from_=10,
+                                        to=80,
+                                        textvariable=fieldsize_spinbox_x_VAR)
+    fieldsize_spinbox_x.grid(row=1,column=1)
+    fieldsize_spinbox_y_VAR = tkinter.StringVar()
+    fieldsize_spinbox_y_VAR.set(20)
+    fieldsize_spinbox_y = tkinter.Spinbox(fieldsize_spinboxes,
+                                          from_=5,
+                                          to=60,
+                                          textvariable=fieldsize_spinbox_y_VAR)
+    fieldsize_spinbox_y.grid(row=1, column=3)
+    tkinter.Label(fieldsize_spinboxes,text=" x ").grid(row=1,column=2)
+    fieldsize_spinboxes.grid(row=3,column=2)
+
+    mineprob_label=tkinter.Label(root,text="Mine Probability")
+    mineprob_label.grid(row=4,column=1)
+
+    mineprob_slider=tkinter.Frame(root)
+    def mineprob_slider_get():
+        return mineprob_slider_scale.get()/1000*15+5
+    def mineprob_slider_scale_cmd(evt):
+        val=mineprob_slider_get()
+        mineprob_slider_disp_VAR.set("{:4.1f}%".format(val))
+    mineprob_slider_scale=tkinter.Scale(mineprob_slider,
+                                        orient=tkinter.HORIZONTAL,
+                                        from_=0,to=1000,
+                                        command=mineprob_slider_scale_cmd,
+                                        showvalue=0,
+                                        length=250)
+    mineprob_slider_scale.grid(row=1,column=1)
+    mineprob_slider_scale.set(300)
+    mineprob_slider_disp_VAR=tkinter.StringVar()
+    mineprob_slider_disp=tkinter.Label(mineprob_slider,textvariable=mineprob_slider_disp_VAR)
+    mineprob_slider_disp.grid(row=1,column=2)
+    mineprob_slider.grid(row=4,column=2)
+
+    create_btn=tkinter.Button(root,text="Create")
+    create_btn.grid(row=5,column=1,columnspan=2)
+
+    def create_success(room_id):
+        success_cb(room_id)
+        root.destroy()
+
+    def create_fail(msg):
+        tkinter.messagebox.showerror("Error", msg)
+
+    def send_create_req():
+
+        grp=client_data.GameRoomParameters(
+            max_players=players_radiobutton_VAR.get(),
+            name=name_input_VAR.get(),
+            field_size=(int(fieldsize_spinbox_x_VAR.get()),
+                        int(fieldsize_spinbox_y_VAR.get())),
+            mine_prob=mineprob_slider_get()
+        )
+        print(grp)
+        gameclient.create_game(grp,create_success,create_fail)
+    create_btn.configure(command=send_create_req)
+
+
+
+
+
+
 
 
 def _display_game(gi):

@@ -20,3 +20,16 @@ class GameInstance:
         self.field_size = field_size
         self.mine_prob = mine_prob
 
+# TODO consider converting these simple classes to namedtuples
+class GameRoomParameters:
+    '''
+    A client's request to the server to create a game room.
+    '''
+    def __init__(self, max_players, name, field_size, mine_prob):
+        self.max_players=max_players
+        self.name=name
+        self.field_size=field_size
+        self.mine_prob=mine_prob
+
+    def __repr__(self):
+        return F"GameRoomParameters({self.max_players},{self.name},{self.field_size},{self.mine_prob})"
