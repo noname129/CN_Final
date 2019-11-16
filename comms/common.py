@@ -65,22 +65,26 @@ class GetGameListResponse:
             'gameList': waiting_game_list
         }
 
+
+class CreateRoomRequest:
+    def __init__(self, max_players, name, field_size, mine_prob):
+        self.values = {
+            'protocol': int(Protocols.create_room_request),
+            'maxPlayers': max_players,
+            'name': name,
+            'fieldSize': field_size,
+            'mineProb': mine_prob
+        }
+
+
+class CreateRoomResponse:
+    def __init__(self, room_id):
+        self.values = {
+            'protocol': int(Protocols.create_room_response),
+            'roomId': room_id
+        }
+
 # ========================= belows are not refactored yet =========================
-
-class CreateRoomRequest:
-    fmt = 'I I I'
-
-    def __init__(self, board_width, board_height):
-        self.values = (int(Protocols.create_room_request), board_width, board_height)
-
-
-class CreateRoomRequest:
-    fmt = 'I I I I'
-
-    def __init__(self, code, board_width, board_height):
-        self.values = (int(Protocols.create_room_request), code, board_width, board_height)
-
-
 class JoinRoomRequest:
     fmt = 'I I'
 
