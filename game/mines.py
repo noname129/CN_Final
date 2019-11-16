@@ -87,6 +87,21 @@ class ImmutableCell():
             number=self._number
         return ImmutableCell(state,owner,is_mine,number)
 
+    def score(self):
+        '''
+        return a score for this cell
+        returns: (player_index, score)
+                 or None
+        '''
+        if self.state==CellState.clicked:
+            if self.is_mine: # kaboom!
+                return (self.owner,-200)
+            elif self.number==0: # blank
+                pass
+            else:
+                return (self.owner,10)
+
+
 
 # Stores user input for "playback"
 MineFieldInput=collections.namedtuple("MineFieldInput",("x","y","button","player_index"))
@@ -142,6 +157,19 @@ class MineFieldState:
             self._superclick(newdata,(mfi.x,mfi.y),mfi.player_index)
 
         return MineFieldState(newdata)
+
+
+    def calculate_scores(self):
+        scores={}
+        for coords in self:
+            cell=self[coords]
+            score=cell.score()
+            if score is not None:
+                if score[0] not in scores:
+                    scores[score[0]]=0
+                scores[score[0]] += score[1]
+        return scores
+
 
     @classmethod
     def _superclick(cls,data,center_coords,player_index):
@@ -220,8 +248,6 @@ class MineFieldState:
 
 
 
-
-
 class MineFieldEventStack():
     '''
     A MineFieldEventStack consists of two data:
@@ -262,18 +288,37 @@ class MineManager(util.utils.CallbackEnabledClass):
     '''
     def __init__(self, player_index, *args, **kwargs):
         super().__init__(*args,**kwargs)
+
+        # Since calculating the stats is a rather lengthy process,
+        # We cache the board state, only updating when nessasary.
         self._state_cache=None
+        self._score_cache=None
+
         self._event_stack=MineFieldEventStack()
 
         self._player_index=player_index
 
+    @property
+    def player_index(self):
+        return self._player_index
     def debug_change_pidx(self,n):
         self._player_index=n
     def _invalidate_cache(self):
         self._state_cache=None
+        self._score_cache=None
 
-    def _recalculate_cache(self):
+
+    def _recalculate_state_cache(self):
+        '''
+        lazy recalculation
+        '''
         self._state_cache=self._event_stack.calaulate_current_state()
+
+    def _recalculate_score_cache(self):
+        if self._state_cache is None:
+            self._recalculate_state_cache()
+        self._score_cache=self._state_cache.calculate_scores()
+
     def user_input(self,coords,button):
 
         self._event_stack.add_input(
@@ -290,8 +335,13 @@ class MineManager(util.utils.CallbackEnabledClass):
         self._call_update_callbacks()
     def get_state(self):
         if self._state_cache is None:
-            self._recalculate_cache()
+            self._recalculate_state_cache()
         return self._state_cache
+    def get_score(self):
+        if self._score_cache is None:
+            self._recalculate_score_cache()
+        return self._score_cache
+
 
 class MineFieldGenerator:
     @classmethod

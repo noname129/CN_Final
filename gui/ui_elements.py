@@ -88,10 +88,10 @@ class DefaultSpriteProvider(SpriteProvider):
 
         files=os.listdir(path)
 
-        #print("Loading", path, "with", len(files), "files")
+        print("Loading", path, "with", len(files), "files")
 
         for filename in files:
-            print(filename)
+            #print(filename)
             filepath=os.path.join(path,filename)
             self._data[filename]=tkinter.PhotoImage(file=filepath)
     @classmethod
@@ -143,6 +143,8 @@ class MineDisplay3(tkinter.Frame):
         self._current_click_type=0
 
         self._field_state_cache=None
+
+        self._refresh_field()
 
     def _click_handler(self,evt):
         #print(evt.x,evt.y,evt.num,evt.type,type(evt.type))
@@ -209,6 +211,62 @@ class MineDisplay3(tkinter.Frame):
         canvas_coords=Tuples.element_wise_mult(bmpsize,center_coords)
         objid=self._canvas.create_image(canvas_coords,image=bmp)
         self._canvas_ids[coords]=objid
+
+import colorsys
+def hsv(h,s,v):
+    rgb=colorsys.hsv_to_rgb(h,s,v)
+    return "#{:02x}{:02x}{:02x}".format(round(rgb[0]*255),round(rgb[1]*255),round(rgb[2]*255))
+_status_display_color_scheme={
+    1:hsv(0   ,0.3,0.9),
+    2:hsv(0.25,0.3,0.9),
+    3:hsv(0.50,0.3,0.9),
+    4:hsv(0.75,0.3,0.9)
+    }
+class PlayerStatusDisplay(tkinter.Frame):
+    def __init__(self,root,mine_manager,player_index,rtl=False,*args,**kwargs):
+        super().__init__(root,*args,**kwargs)
+        if rtl:
+            col_index=10
+        else:
+            col_index=0
+        def next_col_index():
+            nonlocal col_index
+            if rtl:
+                col_index-=1
+            else:
+                col_index+=1
+            return col_index
+        self._mm=mine_manager
+        self._pidx=player_index
+        bgcolor=_status_display_color_scheme[player_index]
+        print(bgcolor)
+
+
+        self._index_display=tkinter.Label(self,text="Player {}".format(player_index))
+        self._index_display.grid(row=1,column=next_col_index())
+
+        self._score_display_VAR=tkinter.StringVar()
+        self._score_display=tkinter.Label(self,textvariable=self._score_display_VAR)
+        self._score_display.grid(row=1,column=next_col_index())
+
+        self.configure(background=bgcolor)
+        self._score_display.configure(background=bgcolor)
+        self._index_display.configure(background=bgcolor)
+
+
+        # TODO this is a memory leak - refernece will still be held after this widget is destryoed
+        self._mm.add_update_callback(lambda dat:self._mm_update_handler())
+
+    def _mm_update_handler(self):
+        scores=self._mm.get_score()
+        pidx=self._pidx
+        if pidx in scores:
+            self.update_score(scores[pidx])
+        else:
+            self.update_score(0)
+
+    def update_score(self,score):
+        self._score_display_VAR.set(str(score))
 
 
 def main3():

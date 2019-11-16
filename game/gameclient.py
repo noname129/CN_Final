@@ -51,8 +51,8 @@ def join_game(gid,cb_success, cb_fail):
     '''
     Request to join a game, specified by gid.
     One of two callback functions will be called:
-      cb_success(gi): the player that has sent this request has successfully joined the game.
-                      a GameInstance of the game is returned.
+      cb_success(gi,pidx): the player that has sent this request has successfully joined the game.
+                          a GameInstance of the game is returned, along with this player's player index.
       cb_fail(msg): Failure. reason in msg.
     '''
     # TODO implement

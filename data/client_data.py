@@ -13,6 +13,7 @@ class GameInstance:
     def __init__(self, instance_id, players, max_players, name, field_size, mine_prob):
         # TODO actually make this class useful
         self.instance_id = instance_id
+        # a tuple of player names [0] is player with index 1, and [1] 2, and so on.
         self.players = players
         self.max_players = max_players
         self.joinable = max_players - len(players) > 0

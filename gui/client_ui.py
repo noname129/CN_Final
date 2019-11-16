@@ -45,7 +45,7 @@ def add_recurring(func, hz):
 
 
 
-def start():
+def start(*,first_window_function=(lambda : _display_login())):
     '''
     Entry point.
     invoke this function to display the client UI.
@@ -55,8 +55,8 @@ def start():
     _tk = tkinter.Tk()
     _tk.withdraw()
 
-    _tk.after(0, _display_login)
-    _tk.after(0, _periodic_100)
+    _tk.after_idle(first_window_function)
+    _tk.after_idle(_periodic_100)
     _tk.mainloop()
 
 
@@ -287,12 +287,25 @@ def _display_room_creation(success_cb):
 
 
 
-def _display_game(gi):
-    # TODO implement
+def _display_game(mm):
+    # TODO implement 4-player - right now this only handles 2-player.
     print("UI: game")
     root = tkinter.Toplevel()
     root.title("SWEEPERS game")
     root.protocol("WM_DELETE_WINDOW", _window_close_handler)
+
+    root.columnconfigure(2,weight=1)
+
+    minedisplay=ui_elements.MineDisplay3(root,ui_elements.DefaultSpriteProvider("sprites/",(16,16)),mm)
+
+    minedisplay.grid(row=2,column=1,columnspan=3)
+
+
+    p1_psd=ui_elements.PlayerStatusDisplay(root,mm,1)
+    p1_psd.grid(row=1,column=1)
+
+    p2_psd = ui_elements.PlayerStatusDisplay(root, mm, 2)
+    p2_psd.grid(row=1, column=3)
 
 
 def kill():
@@ -302,3 +315,21 @@ def kill():
 def _window_close_handler():
     print("Game killed")
     kill()
+
+
+def main():
+
+
+
+    from game import mines
+    mm=mines.MineManager(1)
+
+    mm.server_sync(
+        mines.MineFieldGenerator.generate_symmetrical(50,25,0.15)
+    )
+
+    start(first_window_function=lambda: _display_game(mm))
+
+
+if __name__=="__main__":
+    main()
