@@ -270,7 +270,7 @@ def _display_room_creation(success_cb):
     def send_create_req():
 
         grp=client_data.GameRoomParameters(
-            max_players=players_radiobutton_VAR.get(),
+            max_players=int(players_radiobutton_VAR.get()),
             name=name_input_VAR.get(),
             field_size=(int(fieldsize_spinbox_x_VAR.get()),
                         int(fieldsize_spinbox_y_VAR.get())),

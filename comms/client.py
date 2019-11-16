@@ -3,7 +3,7 @@ import socket
 import threading
 import queue
 import json
-import pickle
+import data.client_data
 import enum
 from comms.common import *
 
@@ -35,27 +35,36 @@ def process_ingame_packet(data):
     #     for i in range(2, user_count + 2):
     #         print(res[i].decode('utf-8'))
 
-def process_lobby_packet(data):
-    data = json.loads(data.decode('utf-8'))
-    protocol_number = data['protocol']
+def process_lobby_packet(packet):
+    packet = json.loads(packet.decode('utf-8'))
+    protocol_number = packet['protocol']
     print('Receive packet type', protocol_number)
     callback_number = -1  #0 : succeed, 1 : fail
     callback_args = []
 
     if protocol_number == int(Protocols.login_response):
-        if data['code'] == 0:
+        if packet['code'] == 0:
             callback_number = 0
     elif protocol_number == int(Protocols.get_game_list_response):
-        if len(data['gameList']) > 0:
+        if len(packet['gameList']) > 0:
             callback_number = 0
-            callback_args.extend([pickle.loads(game) for game in data['gameList']])
+            game_list = tuple([data.client_data.GameInstance(*game) for game in packet['gameList']])
+            callback_args.append(game_list)
         else:
             callback_number = 1
             callback_args.append('There are no games available.')
+    elif protocol_number == int(Protocols.create_room_response):
+        if packet['roomId'] > 0:
+            callback_number = 0
+            callback_args.append(packet['roomId'])
+        else:
+            callback_number = 1
+            callback_args.append('You are already inside a room.')
 
 
     if callback_number >= 0:
         try:
+            print(tuple(callback_args))
             cb_lists[protocol_number].get()[callback_number](*(tuple(callback_args)))
         except queue.Empty:
             pass

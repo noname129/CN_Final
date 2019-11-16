@@ -7,8 +7,8 @@ import data.server_data
 threads = []
 ingame_threads = []
 
-def process_ingame_packet(client, data):
-    protocol_number = int.from_bytes(data[:4], 'little')
+def process_ingame_packet(client, packet):
+    protocol_number = int.from_bytes(packet[:4], 'little')
     print('Receive packet type', protocol_number, 'from {}:{}'.format(client.ip, client.port))
 
     # if protocol_number == SET_USER_NAME_REQUEST:
@@ -19,21 +19,36 @@ def process_ingame_packet(client, data):
     #     client.sock.send(create_packet(SendUserList(names)))
 
 
-def process_lobby_packet(client, data):
-    data = json.loads(data.decode('utf-8'))
-    print(data)
-    protocol_number = data['protocol']
-    print('Receive packet type', protocol_number, 'from {}:{}'.format(client.ip, client.port))
+def process_lobby_packet(client, packet):
+    packet = json.loads(packet.decode('utf-8'))
+    print(packet)
+    protocol_number = packet['protocol']
+    print('Receive packet type', Protocols(protocol_number), 'from {}:{}'.format(client.ip, client.port))
 
     if protocol_number == int(Protocols.login_request):
-        client.player_info.name = data['userName']
+        client.player_info.name = packet['userName']
         client.sock.send(create_lobby_packet(LoginResponse(0)))
 
     elif protocol_number == int(Protocols.get_game_list_request):
         client.sock.send(create_lobby_packet(
-            GetGameListResponse([pickle.dumps(t.game_instance.convert_to_client_version())
+            GetGameListResponse([t.game_instance.convert_to_tuple()
                                  for t in ingame_threads if t.game_instance.is_joinable()])))
 
+    elif protocol_number == int(Protocols.create_room_request):
+        if client.player_info.state == data.server_data.PlayerState.LOBBY:
+            new_game = data.server_data.GameInstance(
+                instance_id=IngameThread.next_id,
+                field_dimension=tuple(packet['fieldSize']),
+                mine_probability=packet['mineProb'],
+                max_players=packet['maxPlayers'],
+                name=packet['name']
+            )
+            new_game.player_threads.append(client)
+            game_thread = IngameThread(new_game)
+            ingame_threads.append(game_thread)
+            client.sock.send(create_lobby_packet(CreateRoomResponse(new_game.instance_id)))
+        else:
+            client.sock.send(create_lobby_packet(CreateRoomResponse(-1)))
 
 class IngameThread(threading.Thread):
     next_id = 1
@@ -43,6 +58,8 @@ class IngameThread(threading.Thread):
         self.game_instance = game_instance
         self.clients = []
         self.id = IngameThread.next_id
+
+        IngameThread.next_id += 1
 
     def run(self):
         pass
@@ -72,6 +89,8 @@ class ClientThread(threading.Thread):
                 self.process(self, data)
         except ConnectionResetError as err:
             print('Error occurred: ', err)
+
+            # TODO remove player from IngameThread if belongs to one
             pass
 
         print('Connection closed: {}:{}'.format(self.ip, self.port))

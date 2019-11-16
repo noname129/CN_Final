@@ -10,6 +10,9 @@ def login(ip, port, name, cb_success, cb_fail):
     '''
     # TODO implement
 
+    if name == '':
+        cb_fail('')
+
     connection_attempt = comms.client.connect(ip, port, name)
     if connection_attempt != 0:
         cb_fail(connection_attempt)
@@ -32,7 +35,6 @@ def fetch_game_list(cb_success, cb_fail):
     comms.client.cb_lists[Protocols.get_game_list_response].put_nowait((cb_success, cb_fail))
 
     print("STUB: GameClient.fetch_game_list")
-    # TODO implement
 
 def create_game(game_room_params,cb_success,cb_fail):
     '''
@@ -44,8 +46,14 @@ def create_game(game_room_params,cb_success,cb_fail):
     '''
 
     print("STUB: GameClient.create_game")
-    # TODO implement
-    cb_success(0)
+
+    comms.client.send_packet(create_lobby_packet(CreateRoomRequest(
+        max_players=game_room_params.max_players,
+        name=game_room_params.name,
+        field_size=game_room_params.field_size,
+        mine_prob=game_room_params.mine_prob
+    )))
+    comms.client.cb_lists[Protocols.create_room_response].put_nowait((cb_success, cb_fail))
 
 def join_game(gid,cb_success, cb_fail):
     '''
