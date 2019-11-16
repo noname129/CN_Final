@@ -1,6 +1,8 @@
 import socket
 import threading
+import pickle
 from comms.common import *
+import data.server_data
 
 threads = []
 ingame_threads = []
@@ -24,12 +26,13 @@ def process_lobby_packet(client, data):
     print('Receive packet type', protocol_number, 'from {}:{}'.format(client.ip, client.port))
 
     if protocol_number == int(Protocols.login_request):
-        client.user_name = data['userName']
+        client.player_info.name = data['userName']
         client.sock.send(create_lobby_packet(LoginResponse(0)))
 
     elif protocol_number == int(Protocols.get_game_list_request):
         client.sock.send(create_lobby_packet(
-            GetGameListResponse([t.game_instance.convert_to_client_version() for t in ingame_threads])))
+            GetGameListResponse([pickle.dumps(t.game_instance.convert_to_client_version())
+                                 for t in ingame_threads if t.game_instance.is_joinable()])))
 
 
 class IngameThread(threading.Thread):
@@ -54,7 +57,7 @@ class ClientThread(threading.Thread):
         self.port = port
         self.process = process_lobby_packet
         self.id = ClientThread.next_id
-        self.user_name = '{}'.format(self.ip)
+        self.player_info = data.server_data.Player('{}'.format(self.ip))
 
         ClientThread.next_id += 1
 

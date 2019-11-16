@@ -58,6 +58,7 @@ class GetGameListRequest:
 
 
 class GetGameListResponse:
+    # note that the elements of waiting_game_list must be pickled, for they are class instances.
     def __init__(self, waiting_game_list):
         self.values = {
             'protocol': int(Protocols.get_game_list_response),

@@ -27,13 +27,12 @@ def fetch_game_list(cb_success, cb_fail):
       cb_success(games): list of GameListing is returned through the games argument.
       cb_fail(msg): Failure. reason in msg.
     '''
+
+    comms.client.send_packet(create_lobby_packet(GetGameListRequest()))
+    comms.client.cb_lists[Protocols.get_game_list_response].put_nowait((cb_success, cb_fail))
+
     print("STUB: GameClient.fetch_game_list")
     # TODO implement
-
-    cb_success([
-        client_data.GameInstance(),
-        client_data.GameInstance()
-    ])
 
 def join_game(gid,cb_success, cb_fail):
     '''

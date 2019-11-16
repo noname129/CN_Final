@@ -3,6 +3,7 @@ import socket
 import threading
 import queue
 import json
+import pickle
 import enum
 from comms.common import *
 
@@ -39,14 +40,23 @@ def process_lobby_packet(data):
     protocol_number = data['protocol']
     print('Receive packet type', protocol_number)
     callback_number = -1  #0 : succeed, 1 : fail
+    callback_args = []
 
     if protocol_number == int(Protocols.login_response):
         if data['code'] == 0:
             callback_number = 0
+    elif protocol_number == int(Protocols.get_game_list_response):
+        if len(data['gameList']) > 0:
+            callback_number = 0
+            callback_args.extend([pickle.loads(game) for game in data['gameList']])
+        else:
+            callback_number = 1
+            callback_args.append('There are no games available.')
+
 
     if callback_number >= 0:
         try:
-            cb_lists[protocol_number].get()[callback_number]()
+            cb_lists[protocol_number].get()[callback_number](*(tuple(callback_args)))
         except queue.Empty:
             pass
 
