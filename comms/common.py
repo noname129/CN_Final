@@ -43,10 +43,11 @@ class LoginRequest:
 
 
 class LoginResponse:
-    def __init__(self, code):
+    def __init__(self, code, user_id):
         self.values = {
             'protocol': int(Protocols.login_response),
-            'code': code
+            'code': code,
+            'userId': user_id
         }
 
 
@@ -84,20 +85,23 @@ class CreateRoomResponse:
             'roomId': room_id
         }
 
-# ========================= belows are not refactored yet =========================
-class JoinRoomRequest:
-    fmt = 'I I'
 
-    def __init__(self, room_number):
-        self.values = (int(Protocols.join_room_request), room_number)
+class JoinRoomRequest:
+    def __init__(self, room_id):
+        self.values = {
+            'protocol': int(Protocols.join_room_request),
+            'roomId': room_id
+        }
 
 
 class JoinRoomResponse:
-    fmt = 'I I 16s I I'
+    def __init__(self, game_info):
+        self.values = {
+            'protocol': int(Protocols.join_room_response),
+            'gameInfo': game_info
+        }
 
-    def __init__(self, room_number, opponent_name, board_width, board_height):
-        self.values = (int(Protocols.join_room_response), room_number, opponent_name, board_width, board_height)
-
+# ========================= belows are not refactored yet =========================
 
 class UpdateGuestName:
     fmt = 'I 16s'

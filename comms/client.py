@@ -15,6 +15,7 @@ class ClientState(enum.Enum):
 
 _sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 _sock.settimeout(10.0)
+client_id = None
 _state = None
 
 cb_lists = [queue.Queue() for i in range(len(Protocols))]
@@ -44,7 +45,9 @@ def process_lobby_packet(packet):
 
     if protocol_number == int(Protocols.login_response):
         if packet['code'] == 0:
+            global client_id
             callback_number = 0
+            client_id = packet['userId']
     elif protocol_number == int(Protocols.get_game_list_response):
         if len(packet['gameList']) > 0:
             callback_number = 0
@@ -54,12 +57,21 @@ def process_lobby_packet(packet):
             callback_number = 1
             callback_args.append('There are no games available.')
     elif protocol_number == int(Protocols.create_room_response):
-        if packet['roomId'] > 0:
+        if packet['roomId'] >= 0:
             callback_number = 0
             callback_args.append(packet['roomId'])
         else:
             callback_number = 1
             callback_args.append('You are already inside a room.')
+    elif protocol_number == int(Protocols.join_room_response):
+        if packet['gameInfo'] is not None:
+            callback_number = 0
+            gi = data.client_data.GameInstance(*packet['gameInfo'])
+            callback_args.append(gi)
+            callback_args.append(client_id)
+        else:
+            callback_number = 1
+            callback_args.append('Invalid attempt.')
 
 
     if callback_number >= 0:

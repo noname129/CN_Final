@@ -23,7 +23,7 @@ class GameState(enum.Enum):
     FINISHED=enum.auto()
 
 class GameInstance:
-    def __init__(self, instance_id, field_dimension=(40, 20), mine_probability=0.05, max_players=4, name=None):
+    def __init__(self, instance_id=None, field_dimension=(40, 20), mine_probability=0.05, max_players=4, name=None):
         self.player_threads = []
         self.instance_id = instance_id
         self.state = GameState.WAIT_FOR_PLAYERS
@@ -37,7 +37,7 @@ class GameInstance:
             instance_id=self.instance_id,
             players=tuple([player.player_info.name for player in self.player_threads]),
             max_players=self.max_players,
-            name= self.name,
+            name=self.name,
             field_size=self.field_dimension,
             mine_prob=self.mine_probability
         )

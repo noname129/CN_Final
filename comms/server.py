@@ -5,7 +5,9 @@ from comms.common import *
 import data.server_data
 
 threads = []
+threads_empty_idx = []
 ingame_threads = []
+ingame_threads_empty_idx = []
 
 def process_ingame_packet(client, packet):
     protocol_number = int.from_bytes(packet[:4], 'little')
@@ -27,7 +29,7 @@ def process_lobby_packet(client, packet):
 
     if protocol_number == int(Protocols.login_request):
         client.player_info.name = packet['userName']
-        client.sock.send(create_lobby_packet(LoginResponse(0)))
+        client.sock.send(create_lobby_packet(LoginResponse(0, client.id)))
 
     elif protocol_number == int(Protocols.get_game_list_request):
         client.sock.send(create_lobby_packet(
@@ -37,46 +39,53 @@ def process_lobby_packet(client, packet):
     elif protocol_number == int(Protocols.create_room_request):
         if client.player_info.state == data.server_data.PlayerState.LOBBY:
             new_game = data.server_data.GameInstance(
-                instance_id=IngameThread.next_id,
                 field_dimension=tuple(packet['fieldSize']),
                 mine_probability=packet['mineProb'],
                 max_players=packet['maxPlayers'],
                 name=packet['name']
             )
-            new_game.player_threads.append(client)
             game_thread = IngameThread(new_game)
-            ingame_threads.append(game_thread)
+            ingame_threads[game_thread.id] = game_thread
             client.sock.send(create_lobby_packet(CreateRoomResponse(new_game.instance_id)))
         else:
             client.sock.send(create_lobby_packet(CreateRoomResponse(-1)))
 
-class IngameThread(threading.Thread):
-    next_id = 1
+    elif protocol_number == int(Protocols.join_room_request):
+        if client.player_info.state == data.server_data.PlayerState.LOBBY:
+            game = ingame_threads[data['roomId']].game_instance
+            game.player_threads.append(client)
+            client.sock.send(create_lobby_packet(JoinRoomResponse(game.convert_to_tuple())))
+        else:
+            client.sock.send(create_lobby_packet(JoinRoomResponse(None)))
 
+
+class IngameThread(threading.Thread):
     def __init__(self, game_instance):
         threading.Thread.__init__(self)
         self.game_instance = game_instance
-        self.clients = []
-        self.id = IngameThread.next_id
-
-        IngameThread.next_id += 1
+        self.id = IngameThread.new_index()
+        self.game_instance.instance_id = self.id
 
     def run(self):
         pass
 
-class ClientThread(threading.Thread):
-    next_id = 1
+    @classmethod
+    def new_index(cls):
+        if len(ingame_threads_empty_idx) == 0:
+            return len(ingame_threads)
+        else:
+            return ingame_threads_empty_idx.pop()
 
+
+class ClientThread(threading.Thread):
     def __init__(self, sock, ip, port):
         threading.Thread.__init__(self)
         self.sock = sock
         self.ip = ip
         self.port = port
         self.process = process_lobby_packet
-        self.id = ClientThread.next_id
+        self.id = ClientThread.new_index()
         self.player_info = data.server_data.Player('{}'.format(self.ip))
-
-        ClientThread.next_id += 1
 
         print('Connection opened from {}:{}'.format(self.ip, self.port))
 
@@ -94,7 +103,15 @@ class ClientThread(threading.Thread):
             pass
 
         print('Connection closed: {}:{}'.format(self.ip, self.port))
+        threads_empty_idx.append(self.id)
         threads.remove(self)
+
+    @classmethod
+    def new_index(cls):
+        if len(threads_empty_idx) == 0:
+            return len(threads)
+        else:
+            return threads_empty_idx.pop()
 
 
 def server_proc(port):
@@ -107,7 +124,7 @@ def server_proc(port):
         (client_sock, (ip, port)) = server_sock.accept()
         client_thread = ClientThread(client_sock, ip, port)
         client_thread.start()
-        threads.append(client_thread)
+        threads[client_thread.id] = client_thread
 
     for thread in threads:
         thread.join()
