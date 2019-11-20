@@ -1,14 +1,13 @@
 '''
 Actual UI design & definition
 '''
-import tkinter
 import tkinter.ttk
 import tkinter.messagebox
-from gui import ui_elements
+from client import ui_elements
 import time
 from util.utils import *
-from game import gameclient
-from data import client_data
+from api import client_api
+from api import api_datatypes
 
 # The almighty root window
 _tk = None
@@ -45,7 +44,7 @@ def add_recurring(func, hz):
 
 
 
-def start(*,first_window_function=(lambda : _display_login())):
+def start(*,first_window_function=(lambda : _display_connect())):
     '''
     Entry point.
     invoke this function to display the client UI.
@@ -60,7 +59,49 @@ def start(*,first_window_function=(lambda : _display_login())):
     _tk.mainloop()
 
 
-def _display_login():
+def _display_connect():
+    print("UI: display connect")
+    root=tkinter.Toplevel()
+    root.title("SWEEPERS Server Connect")
+    root.protocol("WM_DELETE_WINDOW", _window_close_handler)
+
+    root.columnconfigure(2, weight=1)
+
+    label = tkinter.Label(root, text="SWEEPERS")
+    label.grid(row=1, column=1, columnspan=2, sticky=tk_all_directions)
+
+
+    addr_label = tkinter.Label(root, text="Server IP / URL")
+    addr_label.grid(row=3, column=1, sticky=tk_all_directions)
+    addr_input_VAR = tkinter.StringVar()
+    addr_input_VAR.set("localhost")
+    addr_input = tkinter.Entry(root, textvariable=addr_input_VAR)
+    addr_input.grid(row=3, column=2, sticky=tk_all_directions)
+
+    port_label = tkinter.Label(root, text="Server Port")
+    port_label.grid(row=4, column=1, sticky=tk_all_directions)
+    port_input_VAR = tkinter.StringVar()
+    port_input_VAR.set("19477")
+    port_input = tkinter.Entry(root, textvariable=port_input_VAR)
+    port_input.grid(row=4, column=2, sticky=tk_all_directions)
+
+    loginbtn = tkinter.Button(root, text="Connect")
+    loginbtn.grid(row=6, column=1, columnspan=2, sticky=tk_all_directions)
+
+
+    def login_callback():
+        ip = addr_input_VAR.get()
+        port = int(port_input_VAR.get())
+        clicon=client_api.ClientSideAPI(
+            ip,port
+        )
+
+        root.destroy()
+        _display_login(clicon)
+
+    loginbtn.configure(command=login_callback)
+
+def _display_login(clicon:client_api.ClientSideAPI):
     print("UI: display login")
     root = tkinter.Toplevel()
     root.title("SWEEPERS login")
@@ -77,46 +118,27 @@ def _display_login():
     name_input = tkinter.Entry(root, textvariable=name_input_VAR)
     name_input.grid(row=2, column=2, sticky=tk_all_directions)
 
-    addr_label = tkinter.Label(root, text="Server IP / URL")
-    addr_label.grid(row=3, column=1, sticky=tk_all_directions)
-    addr_input_VAR = tkinter.StringVar()
-    addr_input_VAR.set("localhost")
-    addr_input = tkinter.Entry(root, textvariable=addr_input_VAR)
-    addr_input.grid(row=3, column=2, sticky=tk_all_directions)
 
-    port_label = tkinter.Label(root, text="Server Port")
-    port_label.grid(row=4, column=1, sticky=tk_all_directions)
-    port_input_VAR = tkinter.StringVar()
-    port_input_VAR.set("19477")
-    port_input = tkinter.Entry(root, textvariable=port_input_VAR)
-    port_input.grid(row=4, column=2, sticky=tk_all_directions)
-
-    infostrip = tkinter.Label(root, text="")
-    infostrip.grid(row=5, column=1, columnspan=2, sticky=tk_all_directions)
-
-    loginbtn = tkinter.Button(root, text="Connect")
+    loginbtn = tkinter.Button(root, text="Log in")
     loginbtn.grid(row=6, column=1, columnspan=2, sticky=tk_all_directions)
 
-    def success_callback():
+    def success_callback(player_id):
         root.destroy()
-        _display_lobby()
+        _display_lobby(clicon)
 
     def fail_callback(msg):
         tkinter.messagebox.showerror("Error", msg)
 
     def login_callback():
-        name = name_input_VAR.get()
-        ip = addr_input_VAR.get()
-        port = port_input_VAR.get()
-        gameclient.login(
-            ip, int(port), name,
-            success_callback, fail_callback
+        clicon.login(
+            name_input_VAR.get(),
+            success_callback,fail_callback
         )
 
     loginbtn.configure(command=login_callback)
 
 
-def _display_lobby():
+def _display_lobby(clicon:client_api.ClientSideAPI):
     print("UI: lobby")
     root = tkinter.Toplevel()
     root.title("SWEEPERS lobby")
@@ -140,13 +162,9 @@ def _display_lobby():
     def refresh_success(data):
         lobbydisplay.new_data(data)
 
-    def refresh_fail(msg):
-        tkinter.messagebox.showerror("Error", msg)
-
     def refresh():
-        gameclient.fetch_game_list(
-            refresh_success,
-            refresh_fail
+        clicon.fetch_game_list(
+            refresh_success
         )
 
     refreshbtn.configure(command=refresh)
@@ -165,17 +183,17 @@ def _display_lobby():
         if gi is None:
             tkinter.messagebox.showerror("Error", "Select a game first you doofus")
             return
-        gameclient.join_game(gi.instance_id, join_success, join_fail)
+        clicon.join_game(gi.instance_id, join_success, join_fail)
 
     joinbtn.configure(command=join)
 
 
     def create_success(room_id):
         refresh()
-    createbtn.configure(command=lambda:_display_room_creation(create_success))
+    createbtn.configure(command=lambda:_display_room_creation(clicon,create_success))
 
 
-def _display_room_creation(success_cb):
+def _display_room_creation(clicon:client_api.ClientSideAPI, success_cb):
     print("UI: roomcreate")
     root = tkinter.Toplevel()
     root.title("SWEEPERS game create")
@@ -269,15 +287,15 @@ def _display_room_creation(success_cb):
 
     def send_create_req():
 
-        grp=client_data.GameRoomParameters(
+        grp=api_datatypes.RoomCreationParameters(
             max_players=int(players_radiobutton_VAR.get()),
             name=name_input_VAR.get(),
-            field_size=(int(fieldsize_spinbox_x_VAR.get()),
-                        int(fieldsize_spinbox_y_VAR.get())),
+            field_size_x=int(fieldsize_spinbox_x_VAR.get()),
+            field_size_y=int(fieldsize_spinbox_y_VAR.get()),
             mine_prob=mineprob_slider_get()
         )
-        print(grp)
-        gameclient.create_game(grp,create_success,create_fail)
+        #print(grp)
+        clicon.create_game(grp, create_success, create_fail)
     create_btn.configure(command=send_create_req)
 
 
@@ -296,12 +314,12 @@ def _display_game(mm):
 
     root.columnconfigure(2,weight=1)
 
-    minedisplay=ui_elements.MineDisplay3(root,ui_elements.DefaultSpriteProvider("sprites/",(16,16)),mm)
+    minedisplay= ui_elements.MineDisplay3(root, ui_elements.DefaultSpriteProvider("sprites/", (16, 16)), mm)
 
     minedisplay.grid(row=2,column=1,columnspan=3)
 
 
-    p1_psd=ui_elements.PlayerStatusDisplay(root,mm,1)
+    p1_psd= ui_elements.PlayerStatusDisplay(root, mm, 1)
     p1_psd.grid(row=1,column=1)
 
     p2_psd = ui_elements.PlayerStatusDisplay(root, mm, 2)
@@ -321,11 +339,11 @@ def main():
 
 
 
-    from game import mines
-    mm=mines.MineManager(1)
+    from common import mines
+    mm= mines.MineManager(1)
 
     mm.server_sync(
-        mines.MineFieldGenerator.generate_symmetrical(50,25,0.15)
+        mines.MineFieldGenerator.generate_symmetrical(50, 25, 0.15)
     )
 
     start(first_window_function=lambda: _display_game(mm))

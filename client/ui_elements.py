@@ -4,8 +4,7 @@ Defines common UI Elements that will be used throughout the application.
 
 import tkinter
 import tkinter.ttk
-from data import client_data
-from game import mines
+from common import mines
 
 from util.utils import tk_all_directions
 from util.utils import Tuples
@@ -41,21 +40,21 @@ class LobbyDisplay(tkinter.Frame):
             self._treeview.delete(key)
         self._map = dict()
 
-    def _insert(self, gl):
-        values = (gl.name,
-                  ["CLOSED", "OPEN"][gl.joinable],
-                  "{}/{}".format(len(gl.players), gl.max_players),
-                  "{}x{} @{:.0f}%".format(gl.field_size[0], gl.field_size[1], gl.mine_prob * 100))
+    def _insert(self, grd):
+        values = (grd.name,
+                  ["CLOSED", "OPEN"][grd.joinable],
+                  "{}/{}".format(grd.max_players,grd.current_players),
+                  grd.parameters)
         iid = self._treeview.insert("", tkinter.END, values=values)
-        self._map[iid] = gl
+        self._map[iid] = grd
 
-    def new_data(self, gamelisting_list):
+    def new_data(self, gameroomdata_list):
         self._delete_all()
 
-        gls = sorted(gamelisting_list, key=lambda gl: gl.name)
+        grds = sorted(gameroomdata_list, key=lambda grd: grd.name)
 
-        for gl in gls:
-            self._insert(gl)
+        for grd in grds:
+            self._insert(grd)
 
     def get_selection(self):
         selsctions = self._treeview.selection()
@@ -106,11 +105,11 @@ class DefaultSpriteProvider(SpriteProvider):
         letter=self._pidx_to_letter(cell.owner)
         if cell.state == mines.CellState.clickable:
             return self._data[letter+"C.gif"]
-        if cell.state==mines.CellState.clicked:
+        if cell.state== mines.CellState.clicked:
             if cell.is_mine:
                 return self._data[letter+"M.gif"]
             return self._data["{}{}.gif".format(letter,cell.number)]
-        if cell.state==mines.CellState.flagged:
+        if cell.state== mines.CellState.flagged:
             return self._data[letter+"F.gif"]
         raise Exception("sprite error")
 
@@ -271,7 +270,7 @@ class PlayerStatusDisplay(tkinter.Frame):
 
 def main3():
     root = tkinter.Tk()
-    mm=mines.MineManager(1)
+    mm= mines.MineManager(1)
 
     md = MineDisplay3(root,DefaultSpriteProvider("sprites/",(16,16)),mm)
     md.pack()

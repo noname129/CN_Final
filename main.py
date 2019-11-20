@@ -5,14 +5,14 @@ print(sys.argv)
 DEFAULT_PORT = 19477
 
 if len(sys.argv)>1 and sys.argv[1]=="-server":
-    import comms.server
 
     port = DEFAULT_PORT
     if len(sys.argv) > 2 and sys.argv[2].startswith("--port="):
         port = int(sys.argv[2][7:])
 
-    comms.server.server_proc(port)
-else:
-    import gui.client_ui
+    import server.server_dispatcher
+    server.server_dispatcher.start_server(port=port,host='')
 
-    gui.client_ui.start()
+else:
+    import client.client_ui
+    client.client_ui.start()

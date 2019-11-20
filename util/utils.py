@@ -1,8 +1,14 @@
 import tkinter
 import math
+import json
 
 tk_all_directions=(tkinter.W,tkinter.E,tkinter.N,tkinter.S)
 
+
+def object_to_json_bytes(obj):
+    return json.dumps(obj).encode("utf-8")
+def json_bytes_to_object(b):
+    return json.loads(b.decode("utf-8"))
 
 class Tuples:
     '''
@@ -87,3 +93,9 @@ class CallbackEnabledClass():
         self._callback_paused=True
     def _unpause_callbacks(self):
         self._callback_paused=False
+
+def perline_prefix(s,p):
+    return "\n".join([(p+i) for i in s.split("\n")])
+
+def extract_bit(byte, index):
+    return (byte & (1 << index)) != 0

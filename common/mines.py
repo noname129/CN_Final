@@ -11,10 +11,10 @@ class CellState(enum.Enum):
     '''
     Enum of possible cell states
     '''
-    locked = enum.auto()
-    clickable=enum.auto()
-    clicked = enum.auto()
-    flagged = enum.auto()
+    locked = 0
+    clickable=1
+    clicked = 2
+    flagged = 3
 
 
 class ImmutableCell():
@@ -104,7 +104,14 @@ class ImmutableCell():
 
 
 # Stores user input for "playback"
-MineFieldInput=collections.namedtuple("MineFieldInput",("x","y","button","player_index"))
+# x,y= int (0~)
+# button = int (1~3)
+# player_index = int (1~4)
+# input_index = int(0~)
+MineFieldInput=collections.namedtuple("MineFieldInput",
+                                      ("x","y","button","player_index","input_index"))
+MineFieldInputACK=collections.namedtuple("MineFieldInputACK",
+                                         ("player_index","input_index"))
 
 class MineFieldState:
     '''
@@ -265,15 +272,25 @@ class MineFieldEventStack():
         super().__init__(*args,**kwargs)
         self._base_state=None
         self._deltas=list()
+
+        # sanity check variable
+        self._highest_input_index=-1
     def set_base_state(self,mfs):
         self._base_state=mfs
         self._deltas=list()
     def add_input(self,mfi):
+        assert mfi.input_index>self._highest_input_index
+        self._highest_input_index=mfi.input_index
+
         self._deltas.append(mfi)
         print("MineFieldEventStack queue size:",len(self._deltas))
-    def ack_until(self):
-        # TODO this
-        pass
+    def ack_until(self,input_index):
+        for i in range(len(self._deltas)):
+            if self._deltas[i].input_index==input_index:
+                for j in range(i+1):
+                    del self._deltas[0]
+        print("input ACK until",input_index,"remaining deltas:",len(self._deltas))
+
     def calaulate_current_state(self):
         if self._base_state is None:
             return None
@@ -282,65 +299,6 @@ class MineFieldEventStack():
             state=state.process_input(mfi)
         return state
 
-class MineManager(util.utils.CallbackEnabledClass):
-    '''
-    Actually handles user input and dispatches server communication requests
-    '''
-    def __init__(self, player_index, *args, **kwargs):
-        super().__init__(*args,**kwargs)
-
-        # Since calculating the stats is a rather lengthy process,
-        # We cache the board state, only updating when nessasary.
-        self._state_cache=None
-        self._score_cache=None
-
-        self._event_stack=MineFieldEventStack()
-
-        self._player_index=player_index
-
-    @property
-    def player_index(self):
-        return self._player_index
-    def debug_change_pidx(self,n):
-        self._player_index=n
-    def _invalidate_cache(self):
-        self._state_cache=None
-        self._score_cache=None
-
-
-    def _recalculate_state_cache(self):
-        '''
-        lazy recalculation
-        '''
-        self._state_cache=self._event_stack.calaulate_current_state()
-
-    def _recalculate_score_cache(self):
-        if self._state_cache is None:
-            self._recalculate_state_cache()
-        self._score_cache=self._state_cache.calculate_scores()
-
-    def user_input(self,coords,button):
-
-        self._event_stack.add_input(
-            MineFieldInput(x=coords[0],
-                           y=coords[1],
-                           button=button,
-                           player_index=self._player_index))
-
-        self._invalidate_cache()
-        self._call_update_callbacks()
-    def server_sync(self,newstate):
-        self._event_stack.set_base_state(newstate)
-        self._invalidate_cache()
-        self._call_update_callbacks()
-    def get_state(self):
-        if self._state_cache is None:
-            self._recalculate_state_cache()
-        return self._state_cache
-    def get_score(self):
-        if self._score_cache is None:
-            self._recalculate_score_cache()
-        return self._score_cache
 
 
 class MineFieldGenerator:
