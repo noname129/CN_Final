@@ -69,14 +69,15 @@ class RequestCodes():
     Client -> Server
     request: (JSON)
         {   
-            "player_id",
+            "player_id":int,
             "room_id": int
         }
     response: (JSON)
         {
             "success": bool,
             "failure_reason": str,  << only if success=False
-            "joined_room_id": int  << only if success=True
+            "room_id":int,  << only if success=True
+            "player_index":int  << only if success=True
         }
     '''
 
@@ -91,7 +92,24 @@ class RequestCodes():
             "button": int,
             "input_id": int,
             "player_id": int
+        } // common.mines.
+    response: (JSON)
+        {
+            "input_id": int
         }
+    '''
+
+    INGAME_EXPLICIT_NEWSTATE_REQUEST=111
+    '''
+    INGAME_EXPLICIT_NEWSTATE_REQUEST
+    Client -> Server
+    request: (JSON)
+        {
+            "player_id":int
+        }
+    response:(NONE)
+    // This is a special request, telling the server to send a NewState frame
+    // even if there's no change.
     '''
 
     INGAME_NEWSTATE = 110
@@ -99,42 +117,48 @@ class RequestCodes():
     INGAME_NEWSTATE
     Server -> Client
     request: (BINARY)
-        bytestream, 1 byte per cell
-            bits 0~1: state
-            bits 2  : is_mine
-            bits 3~4: owner
-        total x*y bytes
+        // common.mines.MineFieldState .to_bytes() .from_bytes()
     response: (NONE)
     '''
 
-    INGAME_ACK=111
+    INGAME_NOTIFY_ROOM_PARAM_CHANGED=130
     '''
-    INGAME_ACK
+    INGAME_NOTIFY_ROOM_PARAM_CHANGED
     Server -> Client
     request: (JSON)
         {
-            "player_id": int,
-            "input_id": int
+            "room_id":int
         }
-    response: (NONE)    
+    response:(NONE)
+    // This is a special request, notifying that the room parameter has changed.
+    // Ideally the client should make a INGAME_FETCH_ROOM_PARAMS request
+    // to get the newly updated data.
     '''
 
-
-    INGAME_NEW_ROOM_PARAM=112
+    INGAME_FETCH_ROOM_PARAMS=120
     '''
-    INGAME_NEW_ROOM_PARAM
-    Server -> Client
+    INGAME_FETCH_ROOM_PARAMS
+    Client -> Server
     request: (JSON)
         {
-            "player_index_mapping": dict( player_index:int -> player_id:int ),
-            "player_names_mapping": dict( player_index:int -> player_name:str ),
-            "field_size_x": int,
-            "field_size_y": int
+            "room_id":int
+        }
+    response: (JSON)
+        {
+            "success":bool,
+            "igrp":
+                {
+                    "player_index_mapping": dict( player_index:int -> player_id:int ),
+                    "player_names_mapping": dict( player_index:int -> player_name:str ),
+                    "field_size_x": int,
+                    "field_size_y": int,
+                    "max_players": int(2 or 4)
+                }, <- only when success=true
+            "failure_reason":str <- only when success=false
+            
         }
     '''
 
-
-    INGAME_NEW_BOARD=113
 
 
 

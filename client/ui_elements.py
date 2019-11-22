@@ -9,6 +9,9 @@ from common import mines
 from util.utils import tk_all_directions
 from util.utils import Tuples
 
+from client import client_logic
+from api import api_datatypes
+
 
 class LobbyDisplay(tkinter.Frame):
     '''
@@ -119,7 +122,7 @@ class MineDisplay3(tkinter.Frame):
     '''
     A MineDisplay, for use with MineManager and the immutable mine data structures.
     '''
-    def __init__(self,root,sprite_provider,mine_manager,*args,**kwargs):
+    def __init__(self,root,sprite_provider,clogic:client_logic.ClientInGameLogic,*args,**kwargs):
         super().__init__(root,*args,**kwargs)
         self._canvas=tkinter.Canvas(self)
         self._sp=sprite_provider
@@ -128,9 +131,11 @@ class MineDisplay3(tkinter.Frame):
         self._canvas.pack()
         self._canvas_ids=dict()
 
-        self._mine_manager=mine_manager #MineFieldEventStack
-        self._change_listener = lambda x: self._refresh_field()
-        self._mine_manager.add_update_callback(self._change_listener)
+        self._clogic=clogic #MineFieldEventStack
+        self._field_change_listener = lambda: self._refresh_field()
+        self._clogic.add_field_update_callback(self._field_change_listener)
+        self._clogic.add_field_update_callback(self._field_change_listener)
+        self._clogic.add_room_update_callbaks(self._room_change_handler)
 
         self._canvas.bind("<Button-1>", self._click_handler)
         self._canvas.bind("<ButtonRelease-1>", self._click_handler)
@@ -142,8 +147,12 @@ class MineDisplay3(tkinter.Frame):
         self._current_click_type=0
 
         self._field_state_cache=None
+        self._old_size=None
 
         self._refresh_field()
+
+    def _room_change_handler(self,igrp:api_datatypes.InGameRoomParameters):
+        self._set_dimensions(igrp.field_size_x,igrp.field_size_y)
 
     def _click_handler(self,evt):
         #print(evt.x,evt.y,evt.num,evt.type,type(evt.type))
@@ -158,13 +167,19 @@ class MineDisplay3(tkinter.Frame):
             else:
                 self._consume_click(evt.x,evt.y,self._current_click_type)
                 self._current_click_type = 0
+
     def _consume_click(self,x,y,btn):
         rawcoords=(x,y)
         cellcoords=Tuples.element_wise_div(rawcoords,self._ss)
         cellintcoords=Tuples.floor(cellcoords)
-        self._mine_manager.user_input(cellintcoords,btn)
+        self._clogic.user_input(cellintcoords,btn)
 
     def _set_dimensions(self, x, y):
+        if self._old_size is not None:
+            if (x,y)==self._old_size:
+                return
+        self._old_size=(x,y)
+
         self._all_delete()
         size = Tuples.element_wise_mult(self._ss,(x,y))
         self._canvas.configure(width=size[0],height=size[1])
@@ -175,12 +190,14 @@ class MineDisplay3(tkinter.Frame):
         self._canvas_ids=dict()
 
     def _refresh_field(self):
+
         old_state=self._field_state_cache
-        new_state=self._mine_manager.get_state()
+        new_state=self._clogic.get_state()
         self._field_state_cache=new_state
 
         if new_state is None:
             return
+
 
         cells_to_update=[]
         if (old_state is None) or (old_state.dimensions != new_state.dimensions):
@@ -198,7 +215,6 @@ class MineDisplay3(tkinter.Frame):
 
 
     def _refresh_single_cell(self, minefieldstate, coords):
-
         if coords in self._canvas_ids:
             self._canvas.delete(self._canvas_ids[coords])
 
@@ -222,7 +238,7 @@ _status_display_color_scheme={
     4:hsv(0.75,0.3,0.9)
     }
 class PlayerStatusDisplay(tkinter.Frame):
-    def __init__(self,root,mine_manager,player_index,rtl=False,*args,**kwargs):
+    def __init__(self,root,clogic:client_logic.ClientInGameLogic,player_index,rtl=False,*args,**kwargs):
         super().__init__(root,*args,**kwargs)
         if rtl:
             col_index=10
@@ -235,7 +251,7 @@ class PlayerStatusDisplay(tkinter.Frame):
             else:
                 col_index+=1
             return col_index
-        self._mm=mine_manager
+        self._cl=clogic
         self._pidx=player_index
         bgcolor=_status_display_color_scheme[player_index]
         print(bgcolor)
@@ -253,57 +269,27 @@ class PlayerStatusDisplay(tkinter.Frame):
         self._index_display.configure(background=bgcolor)
 
 
-        # TODO this is a memory leak - refernece will still be held after this widget is destryoed
-        self._mm.add_update_callback(lambda dat:self._mm_update_handler())
+        self._cl.add_field_update_callback(self._field_update_handler)
+        self._cl.add_room_update_callbaks(self._room_update_handler)
 
-    def _mm_update_handler(self):
-        scores=self._mm.get_score()
+    def _field_update_handler(self):
+        scores=self._cl.get_score()
         pidx=self._pidx
         if pidx in scores:
             self.update_score(scores[pidx])
         else:
             self.update_score(0)
+    def _room_update_handler(self,igrp:api_datatypes.InGameRoomParameters):
+        if self._pidx>igrp.max_players:
+            self.configure(background="#000000")
+
+        if self._pidx in igrp.player_names_mapping:
+            name=igrp.player_names_mapping[self._pidx]
+        else:
+            name="(waiting)"
+        self._index_display.configure(text="Player {}: {}".format(self._pidx,name))
+
 
     def update_score(self,score):
         self._score_display_VAR.set(str(score))
 
-
-def main3():
-    root = tkinter.Tk()
-    mm= mines.MineManager(1)
-
-    md = MineDisplay3(root,DefaultSpriteProvider("sprites/",(16,16)),mm)
-    md.pack()
-
-    mfs = mines.MineFieldGenerator.generate_symmetrical(50, 25, 0.15)
-    mm.server_sync(mfs)
-
-    pidx=1
-    def btncmd():
-        nonlocal pidx
-        pidx=(pidx)%2+1
-        mm.debug_change_pidx(pidx)
-        btn.configure(text="On side: {}".format(pidx))
-    btn=tkinter.Button(root,text="Switch sides",command=btncmd)
-    btn.pack()
-
-
-    root.mainloop()
-
-def main2():
-    tk = tkinter.Tk()
-    ld2 = LobbyDisplay(tk)
-    ld2.pack()
-
-    def btncmd():
-        # print(ld2.get_selection().instance_id)
-        ld2.new_data([client_data.GameInstance()])
-
-    btn = tkinter.Button(tk, text="db", command=btncmd)
-    btn.pack()
-
-    tk.mainloop()
-
-
-if __name__ == "__main__":
-    main3()

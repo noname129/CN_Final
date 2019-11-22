@@ -2,6 +2,7 @@ from network import smart_pipe
 from api.api_codes import RequestCodes
 import json
 from api import api_datatypes
+import common.mines
 from util.utils import json_bytes_to_object, object_to_json_bytes
 
 class InvalidRequestException(Exception):
@@ -35,6 +36,30 @@ class ServerSideAPI:
             RequestCodes.CREATE_GAME
         )
 
+        self._handler_game_join = None
+        self._sp.set_handler(
+
+            self._raw_handle_game_join,
+            RequestCodes.JOIN_GAME
+        )
+
+        self._handler_ingame_input = None
+        self._sp.set_handler(
+            self._raw_handle_ingame_input,
+            RequestCodes.INGAME_INPUT
+        )
+
+        self._handler_fetch_room_params = None
+        self._sp.set_handler(
+            self._raw_handle_fetch_room_params,
+            RequestCodes.INGAME_FETCH_ROOM_PARAMS
+        )
+
+        self._handler_explicit_newstate_request = None
+        self._sp.set_handler(
+            self._raw_handle_explicit_newstate_request,
+            RequestCodes.INGAME_EXPLICIT_NEWSTATE_REQUEST
+        )
 
     def set_handler_join(self, handler):
         '''
@@ -101,7 +126,96 @@ class ServerSideAPI:
                 "failure_reason": str(e)
             })
 
+    def set_handler_game_join(self, handler):
+        '''
+        Arguments: player id, room id
+        returns: room id, player index
+        may raise: InvalidRequestException
+        '''
+        self._handler_game_join=handler
 
+    def _raw_handle_game_join(self,data):
+        unpacked=json_bytes_to_object(data)
+
+        try:
+            rid, pidx = self._handler_game_join(unpacked["player_id"],unpacked["room_id"])
+            return object_to_json_bytes({
+                "success": True,
+                "room_id": rid,
+                "player_index": pidx
+            })
+        except InvalidRequestException as e:
+            return object_to_json_bytes({
+                "success": False,
+                "failure_reason": str(e)
+            })
+
+    def set_handler_ingame_input(self, handler):
+        '''
+        Argument: api_datatypes.RoomMFI
+        returns: none
+        '''
+        self._handler_ingame_input=handler
+
+    def _raw_handle_ingame_input(self, data):
+        d=json_bytes_to_object(data)
+        rmfi=api_datatypes.dict_to_namedtuple(d,api_datatypes.RoomMFI)
+
+        self._handler_ingame_input(rmfi)
+
+
+        return object_to_json_bytes({
+            "input_id":rmfi.inputID
+        }) # Send ACK back no matter what
+
+    def send_newstate(self, mfs:common.mines.MineFieldState):
+        self._sp.send_request(
+            common.mines.MineFieldState.to_bytes(mfs),
+            RequestCodes.INGAME_NEWSTATE,
+            None # no callback
+        )
+    def send_notification_room_param_changed(self,room_id):
+        self._sp.send_request(
+            object_to_json_bytes({"room_id":room_id}),
+            RequestCodes.INGAME_NOTIFY_ROOM_PARAM_CHANGED,
+            None
+        )
+
+    def set_handler_fetch_room_params(self,handler):
+        '''
+        Argument: room id
+        returns: InGameRoomParams
+        may raise InvalidRequestException
+        '''
+        self._handler_fetch_room_params=handler
+
+    def _raw_handle_fetch_room_params(self, data):
+        d=json_bytes_to_object(data)
+        room_id=d["room_id"]
+        try:
+            igrp=self._handler_fetch_room_params(room_id)
+            d=api_datatypes.namedtuple_to_dict(igrp)
+            j=object_to_json_bytes({
+                "success":True,
+                "igrp":d
+            })
+            return j
+        except InvalidRequestException as e:
+            return object_to_json_bytes({
+                "success": False,
+                "failure_reason": str(e)
+            })
+
+    def set_handler_explicit_newstate_request(self,handler):
+        '''
+        Argument: player_id
+        returns: none
+        '''
+        self._handler_explicit_newstate_request=handler
+
+    def _raw_handle_explicit_newstate_request(self,data):
+        player_id=json_bytes_to_object(data)["player_id"]
+        self._handler_explicit_newstate_request(player_id)
 
 
 

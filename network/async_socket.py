@@ -58,9 +58,14 @@ class AsyncSocket:
             i(err)
 
     def _call_recv_callbacks(self,data):
+        '''
         print("AsyncSocket received data")
         print(" |From:",self._addr,self._port)
-        print(" |Data: "+str(data))
+        dat = str(data)
+        if len(dat) > 250:
+            dat = "(blob, {} bytes)".format(len(dat))
+        print(" |Data: " + dat)'''
+
         for i in self._recv_callbacks:
             i(data)
 
@@ -70,9 +75,13 @@ class AsyncSocket:
             i()
 
     def send_data(self, data):
+        '''
         print("AsyncSocket is sending data")
         print(" |To:", self._addr, self._port)
-        print(" |Data: " + str(data))
+        dat=str(data)
+        if len(dat)>250:
+            dat="(blob, {} bytes)".format(len(dat))
+        print(" |Data: " + dat)'''
 
         self._sock.sendall(data)
 

@@ -8,6 +8,7 @@ import time
 from util.utils import *
 from api import client_api
 from api import api_datatypes
+from client import client_logic
 
 # The almighty root window
 _tk = None
@@ -123,8 +124,10 @@ def _display_login(clicon:client_api.ClientSideAPI):
     loginbtn.grid(row=6, column=1, columnspan=2, sticky=tk_all_directions)
 
     def success_callback(player_id):
+        cs=client_logic.ClientState()
+        cs.set_player_id(player_id)
         root.destroy()
-        _display_lobby(clicon)
+        _display_lobby(clicon, cs)
 
     def fail_callback(msg):
         tkinter.messagebox.showerror("Error", msg)
@@ -138,7 +141,7 @@ def _display_login(clicon:client_api.ClientSideAPI):
     loginbtn.configure(command=login_callback)
 
 
-def _display_lobby(clicon:client_api.ClientSideAPI):
+def _display_lobby(clicon:client_api.ClientSideAPI, cstate:client_logic.ClientState):
     print("UI: lobby")
     root = tkinter.Toplevel()
     root.title("SWEEPERS lobby")
@@ -171,9 +174,10 @@ def _display_lobby(clicon:client_api.ClientSideAPI):
 
     refresh()
 
-    def join_success(gi):
+    def join_success(room_id, player_index):
+        cigl=client_logic.ClientInGameLogic(clicon, player_index, room_id)
         root.destroy()
-        _display_game(gi)
+        _display_game(clicon, cstate, cigl)
 
     def join_fail(msg):
         tkinter.messagebox.showerror("Error", msg)
@@ -183,7 +187,7 @@ def _display_lobby(clicon:client_api.ClientSideAPI):
         if gi is None:
             tkinter.messagebox.showerror("Error", "Select a game first you doofus")
             return
-        clicon.join_game(gi.instance_id, join_success, join_fail)
+        clicon.join_game(cstate.player_id, gi.room_id, join_success, join_fail)
 
     joinbtn.configure(command=join)
 
@@ -305,7 +309,9 @@ def _display_room_creation(clicon:client_api.ClientSideAPI, success_cb):
 
 
 
-def _display_game(mm):
+def _display_game(clicon:client_api.ClientSideAPI,
+                  cstate:client_logic.ClientState,
+                  clogic:client_logic.ClientInGameLogic):
     # TODO implement 4-player - right now this only handles 2-player.
     print("UI: game")
     root = tkinter.Toplevel()
@@ -313,17 +319,27 @@ def _display_game(mm):
     root.protocol("WM_DELETE_WINDOW", _window_close_handler)
 
     root.columnconfigure(2,weight=1)
-
-    minedisplay= ui_elements.MineDisplay3(root, ui_elements.DefaultSpriteProvider("sprites/", (16, 16)), mm)
+    minedisplay= ui_elements.MineDisplay3(root, ui_elements.DefaultSpriteProvider("sprites/", (16, 16)), clogic)
 
     minedisplay.grid(row=2,column=1,columnspan=3)
 
-
-    p1_psd= ui_elements.PlayerStatusDisplay(root, mm, 1)
+    p1_psd= ui_elements.PlayerStatusDisplay(root, clogic, 1)
     p1_psd.grid(row=1,column=1)
 
-    p2_psd = ui_elements.PlayerStatusDisplay(root, mm, 2)
+    p2_psd = ui_elements.PlayerStatusDisplay(root, clogic, 2)
     p2_psd.grid(row=1, column=3)
+
+
+    def refresh(igrp):
+        pass
+    clogic.add_room_update_callbaks(refresh)
+    clogic.fetch_room_params()
+
+    clicon.ingame_explicit_newstate_request(cstate.player_id)
+
+
+
+
 
 
 def kill():
@@ -337,16 +353,7 @@ def _window_close_handler():
 
 def main():
 
-
-
-    from common import mines
-    mm= mines.MineManager(1)
-
-    mm.server_sync(
-        mines.MineFieldGenerator.generate_symmetrical(50, 25, 0.15)
-    )
-
-    start(first_window_function=lambda: _display_game(mm))
+    pass
 
 
 if __name__=="__main__":

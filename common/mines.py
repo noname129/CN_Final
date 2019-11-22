@@ -7,7 +7,7 @@ import collections
 
 _neighbor_deltas = ((-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1))
 
-class CellState(enum.Enum):
+class CellState:
     '''
     Enum of possible cell states
     '''
@@ -33,6 +33,9 @@ class ImmutableCell():
         self._is_mine=is_mine
         self._number=number
 
+        if not self._check_attribute_types():
+            raise Exception("Invalid cell! "+str(self))
+
 
     def __eq__(self, other):
         return ((self._state == other._state) and
@@ -43,6 +46,8 @@ class ImmutableCell():
     def __ne__(self,other):
         return not self.__eq__(other)
 
+    def __repr__(self):
+        return "ImmutableCell({},{},{},{})".format(self.state,self.owner,self.is_mine,self.number)
 
     def can_click_by(self,player_index):
         if self.state==CellState.locked:
@@ -76,6 +81,43 @@ class ImmutableCell():
             number=cell.number
         )
 
+    def _check_attribute_types(self):
+        if (type(self.state)==int
+            and (0<=self.state<=3)
+            and type(self.owner)==int
+            and (0<=self.owner<=7)
+            and type(self.is_mine) == bool
+            and type(self._number)==int
+            and 0<=self.number<=8):
+            return True
+        return False
+
+    def to_bytes(self):
+        byte1=0
+        byte1 |= self.state # bits 0,1
+        byte1 |= self.owner << 2 # bits 2,3,4
+        byte1 |= self.is_mine << 5 # bit 5
+
+        byte2=self.number # bits 0,1,2,3
+
+        return bytes((byte1,byte2))
+
+    @classmethod
+    def from_bytes(cls, b):
+        byte1=b[0]
+        byte2=b[1]
+        state = byte1 & 3
+        owner = (byte1 >> 2) & 7
+        is_mine = ((byte1>>5) & 1) != 0
+        number = byte2 & 15
+
+        return ImmutableCell(
+            state=state,
+            owner=owner,
+            is_mine=is_mine,
+            number=number
+        )
+
     def modify(self, state=None, owner=None, is_mine=None, number=None):
         if state is None:
             state=self._state
@@ -107,11 +149,9 @@ class ImmutableCell():
 # x,y= int (0~)
 # button = int (1~3)
 # player_index = int (1~4)
-# input_index = int(0~)
 MineFieldInput=collections.namedtuple("MineFieldInput",
-                                      ("x","y","button","player_index","input_index"))
-MineFieldInputACK=collections.namedtuple("MineFieldInputACK",
-                                         ("player_index","input_index"))
+                                      ("x","y","button","player_index"))
+
 
 class MineFieldState:
     '''
@@ -120,6 +160,36 @@ class MineFieldState:
       - Converting from MineField
       - Applying MineFieldInputs to existing MineFieldState
     '''
+
+    @classmethod
+    def to_bytes(cls, mfs):
+        result=bytes()
+        result += int(mfs.x).to_bytes(2,"big")
+        result += int(mfs.y).to_bytes(2, "big")
+
+        cell_data_bytes=bytearray()
+        for coords in mfs:
+            cell_data_bytes.extend(mfs[coords].to_bytes())
+        result += bytes(cell_data_bytes)
+
+        return result
+
+    @classmethod
+    def from_bytes(cls, b):
+        x=int.from_bytes(b[0:2],"big")
+        y=int.from_bytes(b[2:4],"big")
+        cell_data=b[4:]
+        if len(cell_data) != x*y*2:
+            raise Exception("Only {} data in a {}x{} board?".format(len(cell_data),x,y))
+        data=util.multiarray.MultiDimArray(x,y)
+        idx=0
+        for coords in data:
+            data[coords]=ImmutableCell.from_bytes(cell_data[idx:idx+2])
+            idx+=2
+
+        return MineFieldState(data)
+
+
 
     @classmethod
     def from_minefield(cls,mf):
@@ -141,6 +211,12 @@ class MineFieldState:
     @property
     def dimensions(self):
         return self._data.dimensions
+    @property
+    def x(self):
+        return self._data.x
+    @property
+    def y(self):
+        return self._data.y
 
     def __iter__(self):
         return self._data.__iter__()
@@ -272,30 +348,26 @@ class MineFieldEventStack():
         super().__init__(*args,**kwargs)
         self._base_state=None
         self._deltas=list()
-
-        # sanity check variable
-        self._highest_input_index=-1
+        self._current_input_index=4000
     def set_base_state(self,mfs):
         self._base_state=mfs
         self._deltas=list()
     def add_input(self,mfi):
-        assert mfi.input_index>self._highest_input_index
-        self._highest_input_index=mfi.input_index
-
-        self._deltas.append(mfi)
-        print("MineFieldEventStack queue size:",len(self._deltas))
+        self._current_input_index+=1
+        self._deltas.append((self._current_input_index,mfi))
+        #print("MineFieldEventStack queue size:",len(self._deltas),"just added input #",self._current_input_index)
+        return self._current_input_index
     def ack_until(self,input_index):
-        for i in range(len(self._deltas)):
-            if self._deltas[i].input_index==input_index:
-                for j in range(i+1):
-                    del self._deltas[0]
-        print("input ACK until",input_index,"remaining deltas:",len(self._deltas))
+        self._deltas=[i for i in self._deltas if i[0]<=input_index]
+
+        #print("input ACK until",input_index,"remaining deltas:",len(self._deltas))
 
     def calaulate_current_state(self):
         if self._base_state is None:
             return None
         state=self._base_state
-        for mfi in self._deltas:
+        for delta in self._deltas:
+            mfi=delta[1]
             state=state.process_input(mfi)
         return state
 
@@ -372,7 +444,7 @@ class MineFieldGenerator:
         for coords in minemap:
             newcell = ImmutableCell(
                 state=CellState.locked,
-                owner=None,
+                owner=0, # no one owns it
                 is_mine=minemap[coords],
                 number=numbers[coords]
             )

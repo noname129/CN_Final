@@ -9,6 +9,18 @@ def object_to_json_bytes(obj):
     return json.dumps(obj).encode("utf-8")
 def json_bytes_to_object(b):
     return json.loads(b.decode("utf-8"))
+def restore_int_keys(d):
+    res=dict()
+    for orig_key in d:
+        value=d[orig_key]
+        if isinstance(value,dict):
+            value=restore_int_keys(value)
+        try:
+            new_key=int(orig_key)
+        except ValueError:
+            new_key=orig_key
+        res[new_key]=value
+    return res
 
 class Tuples:
     '''

@@ -67,14 +67,18 @@ class _SmartPipeFrame:
     def payload(self):
         return self._payload
     def __str__(self):
-        return "\n".join(
-            ["{:<20s}: {}".format(i,getattr(self,i)) for i in
-             ("response_expected",
-              "is_response",
-              "length",
-              "request_id",
-              "request_type",
-              "payload")])
+        s=''
+        s+= "{:<20s}: {}\n".format("response_expected",self.response_expected)
+        s += "{:<20s}: {}\n".format("is_response", self.is_response)
+        s += "{:<20s}: {}\n".format("length", self.length)
+        s += "{:<20s}: {}\n".format("request_id", self.request_id)
+        s += "{:<20s}: {}\n".format("request_type", self.request_type)
+
+        pl=str(self.payload)
+        if len(pl)>250:
+            pl="(blob, {} bytes)".format(len(self.payload))
+        s += "{:<20s}: {}".format("payload", pl)
+        return s
 
     @classmethod
     def frame_create(cls, *, payload, response_expected, is_response, request_id, request_type):
@@ -199,6 +203,7 @@ class SmartPipe():
 
         if spf.is_response:
             self._pending_callbacks[spf.request_id](spf.payload)
+            del self._pending_callbacks[spf.request_id]
         else:
             print(" > Handler called.")
             result = self._handlers[spf.request_type](spf.payload)
@@ -236,6 +241,9 @@ class SmartPipe():
             request_id=self._current_req_num,
             request_type=rqtype
         )
+
+        print("SmartPipe is sending data.")
+        print(perline_prefix(str(spf), " |"))
 
         if callback_function is not None:
             self._pending_callbacks[self._current_req_num] = callback_function
