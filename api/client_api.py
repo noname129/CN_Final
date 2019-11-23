@@ -16,10 +16,10 @@ class ClientSideAPI():
         self._player_id=-1
 
         self._sp.set_handler(
-            self._base_handler_ingame_newstate,
-            RequestCodes.INGAME_NEWSTATE
+            self._base_handler_ingame_newstateACK,
+            RequestCodes.INGAME_NEWSTATE_AND_ACK
         )
-        self._handler_ingame_newstate=None
+        self._handler_ingame_newstateACK=None
 
         self._sp.set_handler(
             self._base_handler_ingame_room_param_changed,
@@ -130,21 +130,12 @@ class ClientSideAPI():
             callback
         )
 
-    def ingame_input(self, roomMFI, cb_ack):
+    def ingame_input(self, roomMFI):
         '''
         Send a input to the server.
 
         player_input: an instance of api_datatypes.PlayerMFI
-
-        cb_ack(input_id):
-            callback function.
-            Called when the input is ACK'd
-            input_id is the ID of the input that is ACK'd
         '''
-
-        def callback(resp):
-            dat=json_bytes_to_object(resp)
-            cb_ack(dat["input_id"])
 
         d=api_datatypes.namedtuple_to_dict(roomMFI)
         j=object_to_json_bytes(d)
@@ -152,20 +143,33 @@ class ClientSideAPI():
         self._sp.send_request(
             j,
             RequestCodes.INGAME_INPUT,
-            callback
+            None
         )
 
-    def set_handler_ingame_newstate(self, handler):
+    def set_handler_ingame_newstateACK(self, handler):
         '''
-        set handler for the ingame_newstate event
+        set handler for the INGAME_NEWSTATE_AND_ACK event
 
-        handler is given common.mines.MineFieldState object.
+        handler function signature:
+            handler(rmfi, mfs)
+                rmfi: the RoomMFI object of the input that caused this update.
+                      May be None, if there's no such input.
+                mfs: the new state
         '''
-        self._handler_ingame_newstate=handler
+        self._handler_ingame_newstateACK=handler
 
-    def _base_handler_ingame_newstate(self,data):
-        mfs=common.mines.MineFieldState.from_bytes(data)
-        self._handler_ingame_newstate(mfs)
+    def _base_handler_ingame_newstateACK(self,data):
+        nul_place=0
+        for i in range(len(data)):
+            if data[i]==0: # the single NUL
+                nul_place=i
+                break
+        part1_json=data[:nul_place]
+        part2_binary=data[(nul_place+1):]
+        j=json_bytes_to_object(part1_json)
+        rmfi=api_datatypes.dict_to_namedtuple(j,api_datatypes.RoomMFI)
+        mfs=common.mines.MineFieldState.from_bytes(part2_binary)
+        self._handler_ingame_newstateACK(rmfi, mfs)
 
     def set_handler_ingame_room_param_changed(self,handler):
         '''

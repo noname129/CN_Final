@@ -134,7 +134,6 @@ class MineDisplay3(tkinter.Frame):
         self._clogic=clogic #MineFieldEventStack
         self._field_change_listener = lambda: self._refresh_field()
         self._clogic.add_field_update_callback(self._field_change_listener)
-        self._clogic.add_field_update_callback(self._field_change_listener)
         self._clogic.add_room_update_callbaks(self._room_change_handler)
 
         self._canvas.bind("<Button-1>", self._click_handler)

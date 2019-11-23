@@ -36,7 +36,7 @@ class ClientInGameLogic():
         self._field_update_callbacks=[]
         self._room_update_callbacks=[]
 
-        client_api.set_handler_ingame_newstate(self.handle_new_basestate)
+        client_api.set_handler_ingame_newstateACK(self.handler_newstateACK)
         client_api.set_handler_ingame_room_param_changed(self.handler_room_param_change)
 
     def handler_room_param_change(self,rid):
@@ -92,18 +92,22 @@ class ClientInGameLogic():
         self._call_field_update_callbacks()
 
         rmfi=api_datatypes.mfi_wrap(mfi,input_index,self._room_id)
-        self._capi.ingame_input(rmfi, self.handle_ack)
+        self._capi.ingame_input(rmfi)
 
 
-    def handle_ack(self, input_id):
-        self._event_stack.ack_until(input_id)
+    def handler_newstateACK(self, rmfi:api_datatypes.RoomMFI, mfs:mines.MineFieldState):
+        if (rmfi.roomID != self._room_id):
+            raise Exception("what???????")
+
+        if (rmfi.player_index==self._player_index):
+            # this ACK was directed at me!
+            self._event_stack.ack_until(rmfi.inputID)
+
+        self._event_stack.set_base_state(mfs)
         self._invalidate_cache()
         self._call_field_update_callbacks()
 
-    def handle_new_basestate(self, newstate):
-        self._event_stack.set_base_state(newstate)
-        self._invalidate_cache()
-        self._call_field_update_callbacks()
+
 
     def get_state(self):
         if self._state_cache is None:

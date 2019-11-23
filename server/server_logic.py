@@ -35,11 +35,12 @@ class GameInstance:
     def has_player(self, player):
         return player in self._players
 
-    def add_input(self, mfi:mines.MineFieldInput):
+    def add_input(self, rmfi:api_datatypes.RoomMFI):
+        mfi=api_datatypes.mfi_extract(rmfi)
         self._mfs=self._mfs.process_input(mfi)
 
         for player in self._players:
-            player.connection.send_newstate(self._mfs)
+            player.connection.send_newstateACK(rmfi, self._mfs)
 
     def add_player(self,player:Player):
         if len(self._players) == self._max_players:
@@ -185,8 +186,7 @@ class ServerSideGameLogic():
         self._validate_room_id(room_id)
 
         room=self._game_list[room_id]
-        mfi=api_datatypes.mfi_extract(rmfi)
-        room.add_input(mfi)
+        room.add_input(rmfi)
 
     def _handle_fetch_room_params(self, room_id):
         self._validate_room_id(room_id)
@@ -196,8 +196,11 @@ class ServerSideGameLogic():
     def _handle_explicit_newstate_request(self,player_id):
         self._validate_player_id(player_id)
         player=self._user_list[player_id]
-        player.connection.send_newstate(
-        self.find_game_with_user(player).mfs)
+
+        room=self.find_game_with_user(player)
+        player.connection.send_newstateACK(
+            api_datatypes.RoomMFI(0,0,0,0,0,room.room_id),
+            room.mfs)
 
 
 

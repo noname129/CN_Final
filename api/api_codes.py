@@ -90,13 +90,11 @@ class RequestCodes():
             "x": int,
             "y": int,
             "button": int,
+            "player_index": int
             "input_id": int,
-            "player_id": int
-        } // common.mines.
-    response: (JSON)
-        {
-            "input_id": int
-        }
+            "room_id":int
+        } // api_datatypes.RoomMFI
+    response: (NONE)
     '''
 
     INGAME_EXPLICIT_NEWSTATE_REQUEST=111
@@ -112,12 +110,32 @@ class RequestCodes():
     // even if there's no change.
     '''
 
-    INGAME_NEWSTATE = 110
+    #INGAME_NEWSTATE = 110
     '''
     INGAME_NEWSTATE
     Server -> Client
     request: (BINARY)
         // common.mines.MineFieldState .to_bytes() .from_bytes()
+    response: (NONE)
+    '''
+
+    INGAME_NEWSTATE_AND_ACK=113
+    '''
+    INGAME_NEWSTATE
+    Server -> Client
+    request: (COMPLEX)
+        [0...n) (JSON)
+            {
+                "x": int,
+                "y": int,
+                "button": int,
+                "player_index": int
+                "input_id": int,
+                "room_id":int
+            } // api_datatypes.RoomMFI
+        [n] NUL byte (\0)
+        [n+1... (BINARY)
+            // common.mines.MineFieldState .to_bytes() .from_bytes()
     response: (NONE)
     '''
 

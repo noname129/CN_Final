@@ -168,14 +168,14 @@ class ServerSideAPI:
         self._handler_ingame_input(rmfi)
 
 
-        return object_to_json_bytes({
-            "input_id":rmfi.inputID
-        }) # Send ACK back no matter what
-
-    def send_newstate(self, mfs:common.mines.MineFieldState):
+    def send_newstateACK(self, rmfi:api_datatypes.RoomMFI, mfs:common.mines.MineFieldState):
+        res=bytes()
+        res += object_to_json_bytes(api_datatypes.namedtuple_to_dict(rmfi))
+        res+= bytes((0,))
+        res += common.mines.MineFieldState.to_bytes(mfs)
         self._sp.send_request(
-            common.mines.MineFieldState.to_bytes(mfs),
-            RequestCodes.INGAME_NEWSTATE,
+            res,
+            RequestCodes.INGAME_NEWSTATE_AND_ACK,
             None # no callback
         )
     def send_notification_room_param_changed(self,room_id):
