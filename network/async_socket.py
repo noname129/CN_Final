@@ -40,6 +40,8 @@ class AsyncSocket:
         self._error_callbacks=[]
         self._close_callbacks=[]
 
+        self._sock.settimeout(1)
+
 
     def add_data_receive_callback(self, cb):
         self._recv_callbacks.append(cb)
@@ -90,18 +92,29 @@ class AsyncSocket:
         # Should only be called by _start_blob_pipe()
         try:
             while True:
-                data = self._sock.recv(4096)
+                try:
+                    data = self._sock.recv(4096)
 
-                if len(data) == 0:
-                    break
+                    if len(data) == 0:
+                        break
 
-                self._call_recv_callbacks(data)
+                    self._call_recv_callbacks(data)
+                except socket.timeout:
+                    pass # Just try again
+
+
 
         except ConnectionAbortedError:
+            print("ConnectionAbortedError raised")
             # Normal termination
             pass
 
-        except ConnectionError as err:
+        except OSError:
+            print("OSError raised")
+            # For linux, a dead socket will raise this error
+            pass
+
+        except Exception as err:
             print('Error occurred: ', err)
             self._call_error_callbacks(err)
 
