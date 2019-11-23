@@ -92,12 +92,15 @@ class ClientInGameLogic():
         self._call_field_update_callbacks()
 
         rmfi=api_datatypes.mfi_wrap(mfi,input_index,self._room_id)
+        #print("## Send input",rmfi)
         self._capi.ingame_input(rmfi)
 
 
     def handler_newstateACK(self, rmfi:api_datatypes.RoomMFI, mfs:mines.MineFieldState):
         if (rmfi.roomID != self._room_id):
             raise Exception("what???????")
+
+        #print("## Ackd input", rmfi)
 
         if (rmfi.player_index==self._player_index):
             # this ACK was directed at me!

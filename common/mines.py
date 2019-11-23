@@ -351,16 +351,16 @@ class MineFieldEventStack():
         self._current_input_index=4000
     def set_base_state(self,mfs):
         self._base_state=mfs
-        self._deltas=list()
+        #self._deltas=list() #<<<WTF????? WHY WAS THIS HERE IN THE FIRST PLACE????
     def add_input(self,mfi):
         self._current_input_index+=1
         self._deltas.append((self._current_input_index,mfi))
         #print("MineFieldEventStack queue size:",len(self._deltas),"just added input #",self._current_input_index)
         return self._current_input_index
     def ack_until(self,input_index):
-        self._deltas=[i for i in self._deltas if i[0]<=input_index]
+        self._deltas=[i for i in self._deltas if i[0]>input_index]
 
-        #print("input ACK until",input_index,"remaining deltas:",len(self._deltas))
+       # print("input ACK until",input_index,"remaining deltas:",len(self._deltas))
 
     def calaulate_current_state(self):
         if self._base_state is None:
