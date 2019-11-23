@@ -375,7 +375,7 @@ class MineFieldEventStack():
 
 class MineFieldGenerator:
     @classmethod
-    def generate_pure_random(cls, x, y, ratio):
+    def generate_pure_random(cls, x, y, ratio, players):
         '''
         Generate & return a purely random minefield.
         x,y = Field dimensions
@@ -387,10 +387,10 @@ class MineFieldGenerator:
         data = multiarray.MultiDimArray(x, y)
         for coords in data:
             data[coords] = (random.random() < ratio)
-        return cls.generate_from_minemap(data)
+        return cls.generate_from_minemap(data,players)
 
     @classmethod
-    def generate_symmetrical(cls, x, y, ratio):
+    def generate_symmetrical(cls, x, y, ratio, player):
         '''
         Generate a symmetrical minefield.
         All the mines will be point-symmetrical, the center point being the center of the field.
@@ -412,15 +412,18 @@ class MineFieldGenerator:
             else:  # there is data at the other end - copy that
                 data[coords] = data[reflected]
 
-        return cls.generate_from_minemap(data)
+        return cls.generate_from_minemap(data,player)
 
     @classmethod
-    def generate_from_minemap(cls, minemap):
+    def generate_from_minemap(cls, minemap, players=2):
         '''
         Initialize a minefield.
         data is a multiarray.MultiDimArray with boolean values, with dimension x,y.
         A value of True means a mine is present at that coordinates.
         '''
+
+        if players not in (2,4):
+            raise Exception("Invalid number of players!")
 
 
         # Before doing anything, calculate the adjacent mine numbers
@@ -451,15 +454,44 @@ class MineFieldGenerator:
             data[coords] = newcell
 
         # Open up edges
-        for i in range(data.y):
-            data[0,i]=data[0,i].modify(
-                owner=1,
-                state=CellState.clickable
-            )
-            data[data.x-1, i] = data[data.x-1, i].modify(
-                owner=2,
-                state=CellState.clickable
-            )
+        edges_L=((0,i) for i in range(data.y))
+        edges_R=((data.x-1,i) for i in range(data.y))
+        edges_U = ((i, 0) for i in range(1,data.x))
+        edges_D = ((i, data.y-1) for i in range(data.x-1))
+
+        if players==2:
+            for coords in edges_L:
+                data[coords]=data[coords].modify(
+                    owner=1,
+                    state=CellState.clickable
+                )
+            for coords in edges_R:
+                data[coords]=data[coords].modify(
+                    owner=2,
+                    state=CellState.clickable
+                )
+        if players==4:
+
+            for coords in edges_L:
+                data[coords]=data[coords].modify(
+                    owner=1,
+                    state=CellState.clickable
+                )
+            for coords in edges_R:
+                data[coords]=data[coords].modify(
+                    owner=4,
+                    state=CellState.clickable
+                )
+            for coords in edges_U:
+                data[coords]=data[coords].modify(
+                    owner=2,
+                    state=CellState.clickable
+                )
+            for coords in edges_D:
+                data[coords]=data[coords].modify(
+                    owner=3,
+                    state=CellState.clickable
+                )
 
         return MineFieldState(data)
 

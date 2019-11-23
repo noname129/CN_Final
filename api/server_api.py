@@ -62,6 +62,7 @@ class ServerSideAPI:
         )
 
     def kill_connection(self):
+        print("Killing ServerSideAPI")
         self._sp.kill_pipe()
 
     def set_handler_join(self, handler):

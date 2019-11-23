@@ -75,6 +75,7 @@ class AsyncSocket:
             i()
 
     def kill_socket(self):
+        print("Killing socket on",self._addr,self._port)
         self._sock.close()
 
     def send_data(self, data):

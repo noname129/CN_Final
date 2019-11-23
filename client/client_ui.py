@@ -218,6 +218,16 @@ def _display_room_creation(clicon:client_api.ClientSideAPI, success_cb):
     players_label=tkinter.Label(root,text="Number of players")
     players_label.grid(row=1, column=1)
 
+
+    xy_sync=False
+    def players_radiobutton_FUNC():
+        nonlocal xy_sync
+        val=players_radiobutton_VAR.get()
+        xy_sync=(val=="4")
+        if xy_sync:
+            fieldsize_spinbox_y_VAR.set(
+                fieldsize_spinbox_x_VAR.get()
+            )
     players_radiobutton=tkinter.Frame(root)
     players_radiobutton_VAR=tkinter.StringVar()
     # INTERNAL BUG IN TKINTER
@@ -230,12 +240,14 @@ def _display_room_creation(clicon:client_api.ClientSideAPI, success_cb):
     players_radiobutton_2=tkinter.Radiobutton(players_radiobutton,
                                               text="2",
                                               variable=players_radiobutton_VAR,
-                                              value=2)
+                                              value=2,
+                                              command=players_radiobutton_FUNC)
     players_radiobutton_2.grid(column=1,row=1)
     players_radiobutton_4 = tkinter.Radiobutton(players_radiobutton,
                                                 text="4",
                                                 variable=players_radiobutton_VAR,
-                                                value=4)
+                                                value=4,
+                                                command=players_radiobutton_FUNC)
     players_radiobutton_4.grid(column=2,row=1)
     players_radiobutton.grid(row=1,column=2)
 
@@ -253,17 +265,29 @@ def _display_room_creation(clicon:client_api.ClientSideAPI, success_cb):
     fieldsize_spinboxes=tkinter.Frame(root)
     fieldsize_spinbox_x_VAR=tkinter.StringVar()
     fieldsize_spinbox_x_VAR.set(40)
+    def fieldsize_spinbox_x_CMD():
+        if xy_sync:
+            fieldsize_spinbox_y_VAR.set(
+                fieldsize_spinbox_x_VAR.get()
+            )
     fieldsize_spinbox_x=tkinter.Spinbox(fieldsize_spinboxes,
                                         from_=10,
                                         to=80,
-                                        textvariable=fieldsize_spinbox_x_VAR)
+                                        textvariable=fieldsize_spinbox_x_VAR,
+                                        command=fieldsize_spinbox_x_CMD)
     fieldsize_spinbox_x.grid(row=1,column=1)
     fieldsize_spinbox_y_VAR = tkinter.StringVar()
     fieldsize_spinbox_y_VAR.set(20)
+    def fieldsize_spinbox_y_CMD():
+        if xy_sync:
+            fieldsize_spinbox_x_VAR.set(
+                fieldsize_spinbox_y_VAR.get()
+            )
     fieldsize_spinbox_y = tkinter.Spinbox(fieldsize_spinboxes,
                                           from_=5,
                                           to=60,
-                                          textvariable=fieldsize_spinbox_y_VAR)
+                                          textvariable=fieldsize_spinbox_y_VAR,
+                                          command=fieldsize_spinbox_y_CMD)
     fieldsize_spinbox_y.grid(row=1, column=3)
     tkinter.Label(fieldsize_spinboxes,text=" x ").grid(row=1,column=2)
     fieldsize_spinboxes.grid(row=3,column=2)
@@ -339,6 +363,12 @@ def _display_game(clicon:client_api.ClientSideAPI,
 
     p2_psd = ui_elements.PlayerStatusDisplay(root, clogic, 2)
     p2_psd.grid(row=1, column=3)
+
+    p3_psd = ui_elements.PlayerStatusDisplay(root, clogic, 3)
+    p3_psd.grid(row=3, column=1)
+
+    p4_psd = ui_elements.PlayerStatusDisplay(root, clogic, 4)
+    p4_psd.grid(row=3, column=3)
 
 
     def refresh(igrp):
