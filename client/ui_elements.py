@@ -146,7 +146,7 @@ class MineDisplay3(tkinter.Frame):
         self._current_click_type=0
 
         self._field_state_cache=None
-        self._old_size=None
+        self._current_field_size=None
 
         self._refresh_field()
 
@@ -171,13 +171,18 @@ class MineDisplay3(tkinter.Frame):
         rawcoords=(x,y)
         cellcoords=Tuples.element_wise_div(rawcoords,self._ss)
         cellintcoords=Tuples.floor(cellcoords)
+        x=cellintcoords[0]
+        y=cellintcoords[1]
+        if x<0 or x>=self._current_field_size[0] or y<0 or y>=self._current_field_size[1]:
+            # out of bounds!
+            return
         self._clogic.user_input(cellintcoords,btn)
 
     def _set_dimensions(self, x, y):
-        if self._old_size is not None:
-            if (x,y)==self._old_size:
+        if self._current_field_size is not None:
+            if (x,y)==self._current_field_size:
                 return
-        self._old_size=(x,y)
+        self._current_field_size=(x, y)
 
         self._all_delete()
         size = Tuples.element_wise_mult(self._ss,(x,y))
