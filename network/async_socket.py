@@ -129,23 +129,49 @@ def _start_blob_pipe(sock, addr, port):
     ).start()
     return lc
 
+_listener_threads=dict()
 def _accept_connections(handler, host, port):
-    threading.Thread(
-        target=lambda :_connection_listen_loop(handler,host,port)
-    ).start()
+    k=(host,port)
+    if k in _listener_threads:
+        raise Exception("You already have a handler there!")
+    iclt=IncomingConnectionListeningThread(handler,host,port)
+    iclt.start()
+    _listener_threads[k]=iclt
 
-def _connection_listen_loop(handler, host, port):
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        print("Bind to...",host,port)
-        sock.bind((host, port))
+class IncomingConnectionListeningThread(threading.Thread):
+    def __init__(self,handler,host,port,*args,**kwargs):
+        super().__init__(*args,**kwargs)
+        self._host=host
+        self._port=port
+        self._handler=handler
+        self._alive=True
 
-        sock.listen()
+        self._sock=socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self._sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        print("Bind to...", self._host, self._port)
+        self._sock.bind((self._host, self._port))
 
-        while True:
-            (client_sock, (ip, port)) = sock.accept()
-            lc=_start_blob_pipe(client_sock, ip, port)
-            handler(lc)
+
+    def kill(self):
+        print("Killing...", self._host, self._port)
+        self._alive=False
+        self._sock.close()
+
+    def run(self):
+        self._sock.listen()
+        self._sock.settimeout(1)
+        while self._alive:
+            try:
+                (client_sock, (ip, port)) = self._sock.accept()
+                lc=_start_blob_pipe(client_sock, ip, port)
+                self._handler(lc)
+            except socket.timeout:
+                # retry
+                pass
+            except OSError:
+                # Usually means the socket is closed
+                print("Killed ", self._host, self._port)
+                break
 
 _started=False
 def start_server(new_connection_handler, host, port):
@@ -155,6 +181,11 @@ def start_server(new_connection_handler, host, port):
     _started=True
 
     _accept_connections(new_connection_handler,host,port)
+
+def end_server(host,port):
+    if (host, port) in _listener_threads:
+        _listener_threads[host,port].kill()
+
 
 def initiate_connection(ip,port):
     s=socket.socket(socket.AF_INET, socket.SOCK_STREAM)

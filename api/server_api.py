@@ -61,6 +61,9 @@ class ServerSideAPI:
             RequestCodes.INGAME_EXPLICIT_NEWSTATE_REQUEST
         )
 
+    def kill_connection(self):
+        self._sp.kill_pipe()
+
     def set_handler_join(self, handler):
         '''
         Set the handler for newly joining players

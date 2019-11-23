@@ -27,7 +27,10 @@ class GameInstance:
         self._players=[]
         self._player_to_index=dict()
 
-        self._mfs=mines.MineFieldGenerator.generate_symmetrical(dimensions[0],dimensions[1],mine_prob/100)
+        self._mfs=mines.MineFieldGenerator.generate_symmetrical(dimensions[0],
+                                                                dimensions[1],
+                                                                mine_prob/100,
+                                                                max_players)
 
     def has_player(self, player):
         return player in self._players
@@ -92,6 +95,11 @@ class ServerSideGameLogic():
         self._game_list=dict()
         self._game_id_base=2000
 
+        self._connections=[]
+
+    def kill_all_connections(self):
+        for i in self._connections:
+            i.kill_connection()
     def add_connection(self, srvcon:server_api.ServerSideAPI):
         '''
         New connection
@@ -116,6 +124,8 @@ class ServerSideGameLogic():
         srvcon.set_handler_explicit_newstate_request(
             self._handle_explicit_newstate_request
         )
+
+        self._connections.append(srvcon)
 
     def find_game_with_user(self, player):
         for game in self._game_list:
