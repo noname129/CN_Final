@@ -307,9 +307,9 @@ class MineFieldState:
                                                  owner=player_index)
 
                 if data[coords].is_mine:
-                    print("KABOOM on",coords)
-                    # TODO handle mine-clicks
-                autoclick=(cell.number==0)
+                    pass # _could_ do something here
+
+                autoclick= (cell.number==0) and (not cell.is_mine)
 
                 # Modify neighbors
                 for delta in _neighbor_deltas:
