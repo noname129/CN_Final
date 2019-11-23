@@ -43,6 +43,15 @@ def _periodic_100():
 def add_recurring(func, hz):
     _rfunc.append(RecurringFunction(func, hz))
 
+# Functions to be ran when the tk terminates.
+_efunc=[]
+def add_exit_handler(func):
+    _efunc.append(func)
+
+def _run_exit_handlers():
+    for i in _efunc:
+        i()
+
 
 
 def start(*,first_window_function=(lambda : _display_connect())):
@@ -96,6 +105,8 @@ def _display_connect():
         clicon=client_api.ClientSideAPI(
             ip,port
         )
+
+        add_exit_handler(lambda:clicon.kill_connection())
 
         root.destroy()
         _display_login(clicon)
@@ -339,17 +350,10 @@ def _display_game(clicon:client_api.ClientSideAPI,
 
 
 
-
-
-
-def kill():
-    _tk.destroy()
-
-
 def _window_close_handler():
     print("Game killed")
-    kill()
-
+    _run_exit_handlers()
+    _tk.destroy()
 
 def main():
 

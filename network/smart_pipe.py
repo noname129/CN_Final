@@ -221,6 +221,9 @@ class SmartPipe():
 
         return True
 
+    def kill_pipe(self):
+        self._as.kill_socket()
+
     def send_request(self, data, rqtype=60000, callback_function=None):
         '''
         Send a request over the pipe.

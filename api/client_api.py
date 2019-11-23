@@ -27,6 +27,9 @@ class ClientSideAPI():
         )
         self._handler_ingame_room_param_changed = None
 
+    def kill_connection(self):
+        self._sp.kill_pipe()
+
     def login(self, username, cb_success, cb_fail):
         '''
         Log in to the server and get a player_id

@@ -53,7 +53,6 @@ class AsyncSocket:
         self._close_callbacks.append(cb)
 
     def _call_error_callbacks(self, err):
-        print("AsyncSocket error callback",err)
         for i in self._error_callbacks:
             i(err)
 
@@ -70,9 +69,11 @@ class AsyncSocket:
             i(data)
 
     def _call_close_callbacks(self):
-        print("AsyncSocket close callback")
         for i in self._close_callbacks:
             i()
+
+    def kill_socket(self):
+        self._sock.close()
 
     def send_data(self, data):
         '''
@@ -96,7 +97,11 @@ class AsyncSocket:
 
                 self._call_recv_callbacks(data)
 
-        except ConnectionResetError as err:
+        except ConnectionAbortedError:
+            # Normal termination
+            pass
+
+        except ConnectionError as err:
             print('Error occurred: ', err)
             self._call_error_callbacks(err)
 
