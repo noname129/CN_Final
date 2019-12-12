@@ -134,14 +134,20 @@ def _display_login(clicon:client_api.ClientSideAPI):
     loginbtn = tkinter.Button(root, text="Log in")
     loginbtn.grid(row=6, column=1, columnspan=2, sticky=tk_all_directions)
 
-    def success_callback(player_id):
-        cs=client_logic.ClientState()
+    def success_ui_apply(player_id):
+        cs = client_logic.ClientState()
         cs.set_player_id(player_id)
         root.destroy()
         _display_lobby(clicon, cs)
 
-    def fail_callback(msg):
+    def success_callback(player_id):
+        root.after_idle(lambda: success_ui_apply(player_id))
+
+    def fail_ui_apply(msg):
         tkinter.messagebox.showerror("Error", msg)
+
+    def fail_callback(msg):
+        root.after_idle(lambda: fail_ui_apply(msg))
 
     def login_callback():
         clicon.login(
@@ -173,8 +179,11 @@ def _display_lobby(clicon:client_api.ClientSideAPI, cstate:client_logic.ClientSt
     createbtn = tkinter.Button(root, text="Create room")
     createbtn.grid(row=4, column=1, sticky=tk_all_directions)
 
-    def refresh_success(data):
+    def refresh_success_ui_apply(data):
         lobbydisplay.new_data(data)
+
+    def refresh_success(data):
+        root.after_idle(lambda: refresh_success_ui_apply(data))
 
     def refresh():
         clicon.fetch_game_list(
@@ -185,13 +194,19 @@ def _display_lobby(clicon:client_api.ClientSideAPI, cstate:client_logic.ClientSt
 
     refresh()
 
-    def join_success(room_id, player_index):
-        cigl=client_logic.ClientInGameLogic(clicon, player_index, room_id)
+    def join_success_ui_apply(room_id, player_index):
+        cigl = client_logic.ClientInGameLogic(clicon, player_index, room_id)
         root.destroy()
         _display_game(clicon, cstate, cigl)
 
-    def join_fail(msg):
+    def join_success(room_id, player_index):
+        root.after_idle(lambda: join_success_ui_apply(room_id, player_index))
+
+    def join_fail_ui_apply(msg):
         tkinter.messagebox.showerror("Error", msg)
+
+    def join_fail(msg):
+        root.after_idle(lambda: join_fail_ui_apply(msg))
 
     def join():
         gi = lobbydisplay.get_selection()
@@ -202,9 +217,12 @@ def _display_lobby(clicon:client_api.ClientSideAPI, cstate:client_logic.ClientSt
 
     joinbtn.configure(command=join)
 
+    def create_ui_apply(room_id):
+        refresh()
 
     def create_success(room_id):
-        refresh()
+        root.after_idle(lambda: create_ui_apply(room_id))
+
     createbtn.configure(command=lambda:_display_room_creation(clicon,create_success))
 
 
@@ -317,12 +335,18 @@ def _display_room_creation(clicon:client_api.ClientSideAPI, success_cb):
     create_btn=tkinter.Button(root,text="Create")
     create_btn.grid(row=5,column=1,columnspan=2)
 
-    def create_success(room_id):
+    def create_success_ui_apply(room_id):
         success_cb(room_id)
         root.destroy()
 
-    def create_fail(msg):
+    def create_success(room_id):
+        root.after_idle(lambda: create_success_ui_apply(room_id))
+
+    def create_fail_ui_apply(msg):
         tkinter.messagebox.showerror("Error", msg)
+
+    def create_fail(msg):
+        root.after_idle(lambda: create_fail_ui_apply(msg))
 
     def send_create_req():
 
