@@ -71,7 +71,7 @@ class GameInstance:
             self._room_id,
             len(self._players),
             self._max_players,
-            self._max_players<len(self._players)
+            self._max_players>len(self._players)
         )
     def to_ingame_room_data(self):
         index_mapping=dict()
