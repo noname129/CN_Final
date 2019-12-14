@@ -133,6 +133,9 @@ class ServerSideGameLogic():
             if player in self._game_list[game].players:
                 return self._game_list[game]
 
+    def _remove_player(self, player_id):
+        del self._user_list[player_id]
+
     def _handle_add_player(self, username, source_connection):
         for player_id in self._user_list:
             if self._user_list[player_id].username == username:
@@ -144,6 +147,8 @@ class ServerSideGameLogic():
                 player_id,
                 source_connection
             )
+
+        source_connection.add_connection_close_callback(lambda: self._remove_player(player_id))
 
         return self._player_id_base
 
