@@ -175,6 +175,18 @@ class SmartPipe():
         A handler can be seperately attatched to each request type.
         This can be used to direct each request to an individial handler.
 
+
+
+    To avoid threading issues in GUI toolkits, a "Callback Runner" function can be specified.
+    When a callback runner is set, instead of running the callback on its own thread,
+    SmartPipe will wrap the callback-calling routine in a function, passing it to
+    the thread runner. The thread runner can then store the callback routine,
+    in order to execute it on the GUI thread.
+
+    Below is an example of such "callback runner" in action, to prevent threading problems
+    when using this with tkinter.
+        smartPipe.set_callback_thread_runner(lambda func:tkRoot.after_idle(func))
+
     '''
     def __init__(self, asyncsocket: async_socket.AsyncSocket):
         self._as = asyncsocket
@@ -191,6 +203,12 @@ class SmartPipe():
         self._raise_for_dead_socket=True
 
         self._as.add_connection_close_callback(self._call_dead_pipe_listeners)
+
+
+        self._callback_runner = lambda x: x()  # this just runs it
+
+    def set_callback_runner(self, runner):
+        self._callback_runner = runner
 
     '''
     Normally trying to call send_request() on a SmartPipe whose AsyncSocket has died
@@ -215,8 +233,13 @@ class SmartPipe():
         self._socket_close_handlers=[]
 
     def _recv_handler(self, data):
-        # Try to consume as many frames as possible
+
         self._buffer += data
+
+        self._callback_runner(lambda:self._parse_loop())
+
+    def _parse_loop(self):
+        # Try to consume as many frames as possible
         while self._try_parse():
             pass
 

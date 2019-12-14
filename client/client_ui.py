@@ -103,7 +103,8 @@ def _display_connect():
         ip = addr_input_VAR.get()
         port = int(port_input_VAR.get())
         clicon=client_api.ClientSideAPI(
-            ip,port
+            ip,port,
+            _tk
         )
 
         add_exit_handler(lambda:clicon.kill_connection())
@@ -141,13 +142,11 @@ def _display_login(clicon:client_api.ClientSideAPI):
         _display_lobby(clicon, cs)
 
     def success_callback(player_id):
-        root.after_idle(lambda: success_ui_apply(player_id))
+        success_ui_apply(player_id)
 
-    def fail_ui_apply(msg):
-        tkinter.messagebox.showerror("Error", msg)
 
     def fail_callback(msg):
-        root.after_idle(lambda: fail_ui_apply(msg))
+        tkinter.messagebox.showerror("Error", msg)
 
     def login_callback():
         clicon.login(
@@ -183,7 +182,7 @@ def _display_lobby(clicon:client_api.ClientSideAPI, cstate:client_logic.ClientSt
         lobbydisplay.new_data(data)
 
     def refresh_success(data):
-        root.after_idle(lambda: refresh_success_ui_apply(data))
+        refresh_success_ui_apply(data)
 
     def refresh():
         clicon.fetch_game_list(
@@ -194,19 +193,13 @@ def _display_lobby(clicon:client_api.ClientSideAPI, cstate:client_logic.ClientSt
 
     refresh()
 
-    def join_success_ui_apply(room_id, player_index):
+    def join_success(room_id, player_index):
         cigl = client_logic.ClientInGameLogic(clicon, player_index, room_id)
         root.destroy()
         _display_game(clicon, cstate, cigl)
 
-    def join_success(room_id, player_index):
-        root.after_idle(lambda: join_success_ui_apply(room_id, player_index))
-
-    def join_fail_ui_apply(msg):
-        tkinter.messagebox.showerror("Error", msg)
-
     def join_fail(msg):
-        root.after_idle(lambda: join_fail_ui_apply(msg))
+        tkinter.messagebox.showerror("Error", msg)
 
     def join():
         gi = lobbydisplay.get_selection()
@@ -217,12 +210,9 @@ def _display_lobby(clicon:client_api.ClientSideAPI, cstate:client_logic.ClientSt
 
     joinbtn.configure(command=join)
 
-    def create_ui_apply(room_id):
+    def create_success(room_id):
         refresh()
         clicon.join_game(cstate.player_id, room_id, join_success, join_fail)
-
-    def create_success(room_id):
-        root.after_idle(lambda: create_ui_apply(room_id))
 
     createbtn.configure(command=lambda:_display_room_creation(clicon,create_success))
 
@@ -336,18 +326,13 @@ def _display_room_creation(clicon:client_api.ClientSideAPI, success_cb):
     create_btn=tkinter.Button(root,text="Create")
     create_btn.grid(row=5,column=1,columnspan=2)
 
-    def create_success_ui_apply(room_id):
+
+    def create_success(room_id):
         success_cb(room_id)
         root.destroy()
 
-    def create_success(room_id):
-        root.after_idle(lambda: create_success_ui_apply(room_id))
-
-    def create_fail_ui_apply(msg):
-        tkinter.messagebox.showerror("Error", msg)
-
     def create_fail(msg):
-        root.after_idle(lambda: create_fail_ui_apply(msg))
+        tkinter.messagebox.showerror("Error", msg)
 
     def send_create_req():
 

@@ -5,13 +5,16 @@ from api.api_codes import RequestCodes
 from util.utils import json_bytes_to_object, object_to_json_bytes, restore_int_keys
 from api import api_datatypes
 import common.mines
+import tkinter
 
 import collections
 
 class ClientSideAPI():
-    def __init__(self,addr,port):
+    def __init__(self,addr,port, tkRoot:tkinter.Tk):
         dt=async_socket.initiate_connection(addr, port)
+
         self._sp=smart_pipe.SmartPipe(dt)
+        self._sp.set_callback_runner(lambda func: tkRoot.after_idle(func))
 
         self._player_id=-1
 
