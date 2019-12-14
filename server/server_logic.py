@@ -5,9 +5,9 @@ from api import api_datatypes
 from common import mines
 
 class PlayerState(enum.Enum):
-    LOBBY=enum.auto()
-    ROOM=enum.auto()
-    GAME=enum.auto()
+    LOBBY=1
+    ROOM=2
+    GAME=3
 
 class Player:
     def __init__(self, name, player_id, server_connection:server_api.ServerSideAPI):

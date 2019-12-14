@@ -6,6 +6,7 @@ import tkinter.messagebox
 from client import ui_elements
 import time
 from util.utils import *
+from util.tk_utils import *
 from api import client_api
 from api import api_datatypes
 from client import client_logic

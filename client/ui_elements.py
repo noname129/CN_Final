@@ -6,7 +6,7 @@ import tkinter
 import tkinter.ttk
 from common import mines
 
-from util.utils import tk_all_directions
+from util.tk_utils import *
 from util.utils import Tuples
 
 from client import client_logic

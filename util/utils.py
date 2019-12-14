@@ -1,8 +1,6 @@
-import tkinter
+
 import math
 import json
-
-tk_all_directions=(tkinter.W,tkinter.E,tkinter.N,tkinter.S)
 
 
 def object_to_json_bytes(obj):
