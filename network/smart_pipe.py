@@ -190,6 +190,8 @@ class SmartPipe():
         self._socket_close_handlers=[]
         self._raise_for_dead_socket=True
 
+        self._as.add_connection_close_callback(self._call_dead_pipe_listeners)
+
     '''
     Normally trying to call send_request() on a SmartPipe whose AsyncSocket has died
     will cause a DeadPipeException.
@@ -254,18 +256,6 @@ class SmartPipe():
     def kill_pipe(self):
         print("Killing SmartPipe")
         self._as.kill_socket()
-
-    def add_data_receive_callback(self, cb):
-        self._as.add_data_receive_callback(cb)
-
-    def remove_data_receive_callback(self,cb):
-        self._as.remove_data_receive_callback(cb)
-
-    def add_connection_error_callback(self, cb):
-        self._as.remove_data_receive_callback(cb)
-
-    def add_connection_close_callback(self, cb):
-        self._as.add_connection_close_callback(cb)
 
     def send_request(self, data, rqtype=60000, callback_function=None):
         '''

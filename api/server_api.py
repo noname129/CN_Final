@@ -70,18 +70,6 @@ class ServerSideAPI:
         print("Killing ServerSideAPI")
         self._sp.kill_pipe()
 
-    def add_data_receive_callback(self, cb):
-        self._sp.add_data_receive_callback(cb)
-
-    def remove_data_receive_callback(self, cb):
-        self._sp.remove_data_receive_callback(cb)
-
-    def add_connection_error_callback(self, cb):
-        self._sp.remove_data_receive_callback(cb)
-
-    def add_connection_close_callback(self, cb):
-        self._sp.add_connection_close_callback(cb)
-
     def set_handler_join(self, handler):
         '''
         Set the handler for newly joining players
