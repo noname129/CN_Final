@@ -23,6 +23,7 @@ class GameInstance:
         self._dimensions=dimensions
         self._mine_prob=mine_prob
         self._max_players=max_players
+        self._player_count=0
 
         self._players=[]
         self._player_to_index=dict()
@@ -42,12 +43,21 @@ class GameInstance:
         for player in self._players:
             player.connection.send_newstateACK(rmfi, self._mfs)
 
-    def add_player(self,player:Player):
-        if len(self._players) == self._max_players:
-            raise server_api.InvalidRequestException("Room full!")
-        self._players.append(player)
-        self._player_to_index[player]=len(self._players)
+    def remove_player(self,player:Player):
+        self._players.remove(player)
+        self.room_param_change_broadcast()
 
+    def add_player(self,player:Player):
+        if self._player_count == self._max_players:
+            raise server_api.InvalidRequestException("Room full!")
+
+        self._player_count += 1
+
+        self._players.append(player)
+        self._player_to_index[player]=self._player_count
+        self.room_param_change_broadcast()
+
+    def room_param_change_broadcast(self):
         for p in self._players:
             p.connection.send_notification_room_param_changed(self._room_id)
 
@@ -126,7 +136,14 @@ class ServerSideGameLogic():
             self._handle_explicit_newstate_request
         )
 
+
         self._connections.append(srvcon)
+    
+    def disconnect_player(self, player):
+        player.username="(DISCONNECTED)"
+
+        gi=self.find_game_with_user(player)
+        gi.remove_player(player)
 
     def find_game_with_user(self, player):
         for game in self._game_list:
@@ -139,11 +156,16 @@ class ServerSideGameLogic():
                 raise server_api.InvalidRequestException("Duplicate username! Please choose another name.")
         self._player_id_base+=1
         player_id=self._player_id_base
-        self._user_list[player_id]=Player(
+        player=Player(
                 username,
                 player_id,
                 source_connection
             )
+        self._user_list[player_id]=player
+
+        source_connection.set_handler_disconnect(
+            lambda: self.disconnect_player(player)
+        )
 
         return self._player_id_base
 

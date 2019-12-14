@@ -61,6 +61,18 @@ class ServerSideAPI:
             RequestCodes.INGAME_EXPLICIT_NEWSTATE_REQUEST
         )
 
+
+        self._handler_disconnect=None
+        self._sp.add_dead_pipe_listener(
+            self._raw_handle_disconnect
+        )
+        self._sp.disable_dead_pipe_exception()
+
+    def set_handler_disconnect(self,handler):
+        self._handler_disconnect=handler
+    def _raw_handle_disconnect(self):
+        self._handler_disconnect()
+
     def kill_connection(self):
         print("Killing ServerSideAPI")
         self._sp.kill_pipe()

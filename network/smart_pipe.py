@@ -148,6 +148,8 @@ class _SmartPipeFrame:
         return result
 
 
+class DeadPipeException(Exception):
+    pass
 
 class SmartPipe():
     '''
@@ -185,6 +187,31 @@ class SmartPipe():
 
         self._buffer = bytes()
 
+        self._socket_close_handlers=[]
+        self._raise_for_dead_socket=True
+
+    '''
+    Normally trying to call send_request() on a SmartPipe whose AsyncSocket has died
+    will cause a DeadPipeException.
+    Below two methods allow users to explicitly enable, or disable that exception.
+    When disabled, the send_request() method essentially becomes no-op once the socket is dead.
+    
+    Regardless of whether the exception is enabled or not, callback functions will be called
+    whenever such "dead write" occur. 
+    You can register callbacks in add_dead_pipe_listener()
+    '''
+    def enable_dead_pipe_exception(self):
+        self._raise_for_dead_socket=True
+    def disable_dead_pipe_exception(self):
+        self._raise_for_dead_socket=False
+
+    def add_dead_pipe_listener(self,f):
+        self._socket_close_handlers.append(f)
+    def _call_dead_pipe_listeners(self):
+        for i in self._socket_close_handlers:
+            i()
+        self._socket_close_handlers=[]
+
     def _recv_handler(self, data):
         # Try to consume as many frames as possible
         self._buffer += data
@@ -217,7 +244,10 @@ class SmartPipe():
                 )
                 print("SmartPipe is sending a response.")
                 print(perline_prefix(str(spf2), " |"))
-                self._as.send_data(_SmartPipeFrame.frame_pack(spf2))
+                if self._as.alive:
+                    self._as.send_data(_SmartPipeFrame.frame_pack(spf2))
+                else:
+                    print("Socket is dead! not sending a response!")
 
         return True
 
@@ -235,6 +265,15 @@ class SmartPipe():
                            is this is not set, it is assumed that the caller is not interested
                            in the response and the receiver will not send a response.
         '''
+
+        if not self._as.alive:
+            self._call_dead_pipe_listeners()
+
+            if self._raise_for_dead_socket:
+                raise DeadPipeException("This pipe is dead!")
+
+            return # no-op afterwards
+
 
         self._current_req_num += 1
 

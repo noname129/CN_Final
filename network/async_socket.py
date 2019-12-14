@@ -18,6 +18,9 @@ For using the AsyncSocket class itself, refer to its own docstring.
 import threading
 import socket
 
+class DeadSocketException(Exception):
+    pass
+
 class AsyncSocket:
     '''
     It's like a socket, but asynchronous.
@@ -42,7 +45,11 @@ class AsyncSocket:
 
         self._sock.settimeout(1)
 
+        self._alive=True
 
+    @property
+    def alive(self):
+        return self._alive
     def add_data_receive_callback(self, cb):
         self._recv_callbacks.append(cb)
     def remove_data_receive_callback(self,cb):
@@ -77,6 +84,7 @@ class AsyncSocket:
     def kill_socket(self):
         print("Killing socket on",self._addr,self._port)
         self._sock.close()
+        self._alive=False
 
     def send_data(self, data):
         '''
@@ -86,6 +94,8 @@ class AsyncSocket:
         if len(dat)>250:
             dat="(blob, {} bytes)".format(len(dat))
         print(" |Data: " + dat)'''
+        if not self._alive:
+            raise DeadSocketException("This socket's dead bro")
 
         self._sock.sendall(data)
 
@@ -122,6 +132,7 @@ class AsyncSocket:
         self._call_close_callbacks()
         print("Closing AsyncSocket")
         self._sock.close()
+        self._alive=False
 
 def _start_blob_pipe(sock, addr, port):
     lc=AsyncSocket(sock, addr, port)
