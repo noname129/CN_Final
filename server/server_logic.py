@@ -215,7 +215,8 @@ class ServerSideGameLogic():
         #player.username="(DISCONNECTED)"
 
         gi=self.find_game_with_user(player)
-        gi.remove_player(player)
+        if gi is not None:
+            gi.remove_player(player)
 
         del self._user_list[player.player_id]
 
