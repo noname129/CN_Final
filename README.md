@@ -1,13 +1,19 @@
 # Sweepers!
 A competitive multiplayer version of a particular explosive-finding game.
 
-In **very** early stages of development.
+### Usage
+Run the server with
+```python3 main.py -server --port=12345 ```
+
+Start the client with ```python3 main.py```
 
 ### Structure
 ```
-comms/   Communication & Networking
-data/    Data structures
-game/    Game logic
-gui/     User interface
-util/    Misc. files
+api/      client-server API definition & implementation.
+client/   Client-specific logic
+common/   Common logic
+network/  Network primitives
+server/   Server-specific logic
+sprites/  Sprites, for use in client UI
+util/     Misc stuff
 ```
