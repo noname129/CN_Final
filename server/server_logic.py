@@ -134,6 +134,10 @@ class ServerSideGameLogic():
                 return self._game_list[game]
 
     def _remove_player(self, player_id):
+        player = self._user_list[player_id]
+        game = self.find_game_with_user(player)
+        # TODO explode game instance
+
         del self._user_list[player_id]
 
     def _handle_add_player(self, username, source_connection):
