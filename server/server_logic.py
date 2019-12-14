@@ -144,12 +144,12 @@ class GameInstance:
 
     def to_game_room_data(self):
         return api_datatypes.GameRoomData(
-            self._name,
-            "{}x{}@{:.03f}%".format(self._dimensions[0],self._dimensions[1],self._mine_prob),
-            self._room_id,
-            self._player_count,
-            self._max_players,
-            self._max_players>len(self._players)
+            name=self._name,
+            parameters="{}x{}@{:.03f}%".format(self._dimensions[0],self._dimensions[1],self._mine_prob),
+            room_id=self._room_id,
+            current_players=self._player_count,
+            max_players=self._max_players,
+            joinable=not self._started
         )
     def to_ingame_room_data(self):
         index_mapping=dict()
