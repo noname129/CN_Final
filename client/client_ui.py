@@ -219,6 +219,7 @@ def _display_lobby(clicon:client_api.ClientSideAPI, cstate:client_logic.ClientSt
 
     def create_ui_apply(room_id):
         refresh()
+        clicon.join_game(cstate.player_id, room_id, join_success, join_fail)
 
     def create_success(room_id):
         root.after_idle(lambda: create_ui_apply(room_id))
