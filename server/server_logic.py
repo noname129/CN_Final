@@ -81,7 +81,7 @@ class GameInstance:
             self._room_id,
             len(self._players),
             self._max_players,
-            self._max_players==len(self._players)
+            self._max_players>len(self._players)
         )
     def to_ingame_room_data(self):
         index_mapping=dict()
@@ -150,6 +150,13 @@ class ServerSideGameLogic():
             if player in self._game_list[game].players:
                 return self._game_list[game]
 
+    def _remove_player(self, player_id):
+        player = self._user_list[player_id]
+        game = self.find_game_with_user(player)
+        # TODO explode game instance
+
+        del self._user_list[player_id]
+
     def _handle_add_player(self, username, source_connection):
         for player_id in self._user_list:
             if self._user_list[player_id].username == username:
@@ -166,6 +173,8 @@ class ServerSideGameLogic():
         source_connection.set_handler_disconnect(
             lambda: self.disconnect_player(player)
         )
+
+        source_connection.add_connection_close_callback(lambda: self._remove_player(player_id))
 
         return self._player_id_base
 

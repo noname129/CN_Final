@@ -46,7 +46,7 @@ class LobbyDisplay(tkinter.Frame):
     def _insert(self, grd):
         values = (grd.name,
                   ["CLOSED", "OPEN"][grd.joinable],
-                  "{}/{}".format(grd.max_players,grd.current_players),
+                  "{}/{}".format(grd.current_players,grd.max_players),
                   grd.parameters)
         iid = self._treeview.insert("", tkinter.END, values=values)
         self._map[iid] = grd
