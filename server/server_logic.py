@@ -80,13 +80,11 @@ class GameInstance:
             self._active = False
             self._message="Player {} wins!".format(winner)
             self.room_param_change_broadcast()
-            self.explode()
 
         if len(self._players)<2:
             self._message="You win!"
             self._active=False
             self.room_param_change_broadcast()
-            self.explode()
 
     def remove_player(self,player:Player):
         self._players.remove(player)
