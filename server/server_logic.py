@@ -25,6 +25,7 @@ class GameInstance:
         self._max_players=max_players
         self._player_count=0
         self._active=False
+        self._started=False
         self._message='Waiting for players...'
 
         self._players=[]
@@ -34,6 +35,18 @@ class GameInstance:
                                                                 dimensions[1],
                                                                 mine_prob/100,
                                                                 max_players)
+
+        self._explode_listeners=[]
+
+    def add_explode_listener(self, func):
+        self._explode_listeners.append(func)
+    def explode(self):
+        for i in self._explode_listeners:
+            i()
+
+        # We don't want to explode twice
+        # remove all listeners so they won't get called twice
+        self._explode_listeners=[]
 
 
     def has_player(self, player):
@@ -67,17 +80,25 @@ class GameInstance:
             self._active = False
             self._message="Player {} wins!".format(winner)
             self.room_param_change_broadcast()
+            self.explode()
 
         if len(self._players)<2:
             self._message="You win!"
             self._active=False
             self.room_param_change_broadcast()
+            self.explode()
 
     def remove_player(self,player:Player):
         self._players.remove(player)
-        self.check_end_condition()
+
+        if self._started:
+            self.check_end_condition()
 
         self.room_param_change_broadcast()
+
+        if len(self.players)==0:
+            self.explode()
+
 
     def add_player(self,player:Player):
         if self._player_count == self._max_players:
@@ -90,6 +111,7 @@ class GameInstance:
 
         if self._player_count == self._max_players:
             self._active=True
+            self._started=True
             self._message=None
 
         self.room_param_change_broadcast()
@@ -232,13 +254,17 @@ class ServerSideGameLogic():
     def _handle_game_creation(self, rcp:api_datatypes.RoomCreationParameters):
         self._game_id_base+=1
         game_id=self._game_id_base
-        self._game_list[game_id]=GameInstance(
+        gi=GameInstance(
                 self._game_id_base,
                 rcp.name,
                 (rcp.field_size_x,rcp.field_size_y),
                 rcp.mine_prob,
                 rcp.max_players
             )
+
+        self._game_list[game_id]=gi
+
+        gi.add_explode_listener(lambda:self._game_list.pop(game_id))
 
         return self._game_id_base
 
