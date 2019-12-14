@@ -142,7 +142,10 @@ class ImmutableCell():
                 pass
             else:
                 return (self.owner,10)
-
+        elif self.state==CellState.flagged:
+            # No, wait. this is a terrible idea.
+            #return (self.owner,30)
+            pass
 
 
 # Stores user input for "playback"
@@ -252,6 +255,22 @@ class MineFieldState:
                     scores[score[0]]=0
                 scores[score[0]] += score[1]
         return scores
+
+    def check_all_opened(self, player_filter=(1,2,3,4)):
+        print("CAO",player_filter)
+        all_open=True
+        for coords in self:
+            if self[coords].owner in player_filter:
+                if self[coords].state==CellState.clickable:
+                    # We can return early here
+                    # But we intentionally don't, since that would mean this process'
+                    # running time would get longer as the board gets filled up.
+                    # This could make the performance of the server vary wildly,
+                    # making debugging & performance analysis harder.
+                    # So, to ensure a more constant load, an early return in not used.
+                    all_open=False
+
+        return all_open
 
 
     @classmethod

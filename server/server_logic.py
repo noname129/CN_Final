@@ -39,6 +39,9 @@ class GameInstance:
     def has_player(self, player):
         return player in self._players
 
+    def active_players(self):
+        return tuple([self._player_to_index[i] for i in self._players])
+
     def add_input(self, rmfi:api_datatypes.RoomMFI):
         mfi=api_datatypes.mfi_extract(rmfi)
         self._mfs=self._mfs.process_input(mfi)
@@ -46,11 +49,34 @@ class GameInstance:
         for player in self._players:
             player.connection.send_newstateACK(rmfi, self._mfs)
 
-    def remove_player(self,player:Player):
-        self._players.remove(player)
+        self.check_end_condition()
+    def check_end_condition(self):
+        if self._mfs.check_all_opened(self.active_players()):
+            # Everything is opened - game is over!
+
+
+            scores=self._mfs.calculate_scores()
+
+            highest_score=-100000000
+            winner=-1
+            for k in scores:
+                if scores[k]>highest_score:
+                    highest_score=scores[k]
+                    winner=k
+
+            self._active = False
+            self._message="Player {} wins!".format(winner)
+            self.room_param_change_broadcast()
+
         if len(self._players)<2:
             self._message="You win!"
             self._active=False
+            self.room_param_change_broadcast()
+
+    def remove_player(self,player:Player):
+        self._players.remove(player)
+        self.check_end_condition()
+
         self.room_param_change_broadcast()
 
     def add_player(self,player:Player):
