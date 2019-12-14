@@ -13,32 +13,25 @@ class ServerSideAPI:
         dt=dt
         self._sp=smart_pipe.SmartPipe(dt)
         self._sp.set_handler(
-
             self._raw_handle_join,
             RequestCodes.JOIN
-
         )
         self._handler_join=None
 
         self._handler_game_listing=None
         self._sp.set_handler(
-
-
             self._raw_handle_game_lsting,
             RequestCodes.GET_GAME_LISTING
         )
 
         self._handler_game_creation=None
         self._sp.set_handler(
-
-
             self._raw_handle_game_creation,
             RequestCodes.CREATE_GAME
         )
 
         self._handler_game_join = None
         self._sp.set_handler(
-
             self._raw_handle_game_join,
             RequestCodes.JOIN_GAME
         )
@@ -64,6 +57,18 @@ class ServerSideAPI:
     def kill_connection(self):
         print("Killing ServerSideAPI")
         self._sp.kill_pipe()
+
+    def add_data_receive_callback(self, cb):
+        self._sp.add_data_receive_callback(cb)
+
+    def remove_data_receive_callback(self, cb):
+        self._sp.remove_data_receive_callback(cb)
+
+    def add_connection_error_callback(self, cb):
+        self._sp.remove_data_receive_callback(cb)
+
+    def add_connection_close_callback(self, cb):
+        self._sp.add_connection_close_callback(cb)
 
     def set_handler_join(self, handler):
         '''
