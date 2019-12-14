@@ -205,7 +205,7 @@ def _display_lobby(clicon:client_api.ClientSideAPI, cstate:client_logic.ClientSt
     def join():
         gi = lobbydisplay.get_selection()
         if gi is None:
-            tkinter.messagebox.showerror("Error", "Select a game first you doofus")
+            tkinter.messagebox.showerror("Error", "Select a game first")
             return
         clicon.join_game(cstate.player_id, gi.room_id, join_success, join_fail)
 
