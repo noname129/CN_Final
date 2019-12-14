@@ -24,6 +24,8 @@ class GameInstance:
         self._mine_prob=mine_prob
         self._max_players=max_players
         self._player_count=0
+        self._active=False
+        self._message='Waiting for players...'
 
         self._players=[]
         self._player_to_index=dict()
@@ -32,6 +34,7 @@ class GameInstance:
                                                                 dimensions[1],
                                                                 mine_prob/100,
                                                                 max_players)
+
 
     def has_player(self, player):
         return player in self._players
@@ -45,6 +48,8 @@ class GameInstance:
 
     def remove_player(self,player:Player):
         self._players.remove(player)
+        if len(self._players)<2:
+            self._message="You win!"
         self.room_param_change_broadcast()
 
     def add_player(self,player:Player):
@@ -55,6 +60,22 @@ class GameInstance:
 
         self._players.append(player)
         self._player_to_index[player]=self._player_count
+
+        if self._player_count == self._max_players:
+            self._active=True
+            self._message=None
+
+        self.room_param_change_broadcast()
+
+    def broadcast_activation(self):
+        self._active=True
+        self.room_param_change_broadcast()
+    def broadcast_deactivation(self):
+        self._active=False
+        self.room_param_change_broadcast()
+
+    def broadcast_message(self,msg):
+        self._message=msg
         self.room_param_change_broadcast()
 
     def room_param_change_broadcast(self):
@@ -95,7 +116,9 @@ class GameInstance:
             player_names_mapping=names_mapping,
             field_size_x=self._mfs.x,
             field_size_y=self._mfs.y,
-            max_players=self._max_players
+            max_players=self._max_players,
+            game_active=self._active,
+            popup_message=self._message
         )
 
 class ServerSideGameLogic():

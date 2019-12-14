@@ -170,7 +170,9 @@ class RequestCodes():
                     "player_names_mapping": dict( player_index:int -> player_name:str ),
                     "field_size_x": int,
                     "field_size_y": int,
-                    "max_players": int(2 or 4)
+                    "max_players": int(2 or 4),
+                    "game_active": bool,
+                    "popup_message": str
                 }, <- only when success=true
             "failure_reason":str <- only when success=false
             

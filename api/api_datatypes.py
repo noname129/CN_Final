@@ -27,7 +27,9 @@ InGameRoomParameters = collections.namedtuple("InGameRoomParameters",
                                                "player_names_mapping",
                                                "field_size_x",
                                                "field_size_y",
-                                               "max_players"))
+                                               "max_players",
+                                               "game_active",
+                                               "popup_message"))
 
 # common.mines.MineFieldInput + some metadata
 RoomMFI = collections.namedtuple("RoomMFI",

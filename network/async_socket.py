@@ -17,6 +17,7 @@ For using the AsyncSocket class itself, refer to its own docstring.
 '''
 import threading
 import socket
+import traceback
 
 class DeadSocketException(Exception):
     pass
@@ -75,7 +76,12 @@ class AsyncSocket:
         print(" |Data: " + dat)'''
 
         for i in self._recv_callbacks:
-            i(data)
+            try:
+                i(data)
+            except:
+                # We catch it here so the exception will not bubble up
+                # all the way up to the threading loop.
+                traceback.print_exc()
 
     def _call_close_callbacks(self):
         for i in self._close_callbacks:

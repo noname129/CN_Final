@@ -128,8 +128,14 @@ class MineDisplay3(tkinter.Frame):
         self._sp=sprite_provider
         self._ss=sprite_provider.sprite_size()
 
+        self._active=True
+
         self._canvas.pack()
         self._canvas_ids=dict()
+
+        self._text=None
+        self._text_id=None
+        self._text_backdrop_id=None
 
         self._clogic=clogic #MineFieldEventStack
         self._field_change_listener = lambda: self._refresh_field()
@@ -147,13 +153,49 @@ class MineDisplay3(tkinter.Frame):
 
         self._field_state_cache=None
         self._current_field_size=None
+        self._current_canvas_size=(0,0)
 
         self._refresh_field()
 
+    @property
+    def active(self):
+        return self._active
+    @active.setter
+    def active(self,b):
+        self._active=b
+
+    def _text_update(self):
+        if self._text_id is not None:
+            self._canvas.delete(self._text_id)
+            self._text_id=None
+        if self._text_backdrop_id is not None:
+            self._canvas.delete(self._text_backdrop_id)
+            self._text_backdrop_id=None
+
+        if self._text:
+            self._text_id=self._canvas.create_text(
+                Tuples.div(self._current_canvas_size,2),
+                text=self._text,
+                fill="#000000",
+                font=("Arial",16)
+            )
+            self._text_backdrop_id=self._canvas.create_rectangle(
+                self._canvas.bbox(self._text_id),
+                fill="#FFFFFF"
+            )
+            self._canvas.lift(self._text_id)
+
+
+
     def _room_change_handler(self,igrp:api_datatypes.InGameRoomParameters):
         self._set_dimensions(igrp.field_size_x,igrp.field_size_y)
+        self.active=igrp.game_active
+        self._text=igrp.popup_message
+        self._text_update()
 
     def _click_handler(self,evt):
+        if not self.active:
+            return
         #print(evt.x,evt.y,evt.num,evt.type,type(evt.type))
         if evt.type==tkinter.EventType.ButtonPress:
             if evt.num==1:
@@ -188,6 +230,9 @@ class MineDisplay3(tkinter.Frame):
         size = Tuples.element_wise_mult(self._ss,(x,y))
         self._canvas.configure(width=size[0],height=size[1])
 
+        self._current_canvas_size=size
+        self._text_update()
+
     def _all_delete(self):
         for i in self._canvas_ids:
             self._canvas.delete(self._canvas_ids[i])
@@ -216,6 +261,12 @@ class MineDisplay3(tkinter.Frame):
 
         for coords in cells_to_update:
             self._refresh_single_cell(new_state, coords)
+
+
+        if self._text_backdrop_id is not None:
+            self._canvas.lift(self._text_backdrop_id)
+        if self._text_id is not None:
+            self._canvas.lift(self._text_id)
 
 
     def _refresh_single_cell(self, minefieldstate, coords):
