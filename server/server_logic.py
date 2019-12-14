@@ -50,6 +50,7 @@ class GameInstance:
         self._players.remove(player)
         if len(self._players)<2:
             self._message="You win!"
+            self._active=False
         self.room_param_change_broadcast()
 
     def add_player(self,player:Player):
@@ -100,7 +101,7 @@ class GameInstance:
             self._name,
             "{}x{}@{:.03f}%".format(self._dimensions[0],self._dimensions[1],self._mine_prob),
             self._room_id,
-            len(self._players),
+            self._player_count,
             self._max_players,
             self._max_players>len(self._players)
         )
