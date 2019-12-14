@@ -140,22 +140,19 @@ class ServerSideGameLogic():
         self._connections.append(srvcon)
     
     def disconnect_player(self, player):
-        player.username="(DISCONNECTED)"
+        #player.username="(DISCONNECTED)"
 
         gi=self.find_game_with_user(player)
         gi.remove_player(player)
+
+        del self._user_list[player.player_id]
 
     def find_game_with_user(self, player):
         for game in self._game_list:
             if player in self._game_list[game].players:
                 return self._game_list[game]
 
-    def _remove_player(self, player_id):
-        player = self._user_list[player_id]
-        game = self.find_game_with_user(player)
-        # TODO explode game instance
 
-        del self._user_list[player_id]
 
     def _handle_add_player(self, username, source_connection):
         for player_id in self._user_list:
@@ -173,8 +170,6 @@ class ServerSideGameLogic():
         source_connection.set_handler_disconnect(
             lambda: self.disconnect_player(player)
         )
-
-        source_connection.add_connection_close_callback(lambda: self._remove_player(player_id))
 
         return self._player_id_base
 
