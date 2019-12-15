@@ -260,8 +260,8 @@ class MineFieldState:
         print("CAO",player_filter)
         all_open=True
         for coords in self:
-            if self[coords].owner in player_filter:
-                if self[coords].state==CellState.clickable:
+            if self[coords].owner in player_filter or self[coords].owner == 0:
+                if (not self[coords].is_mine) and self[coords].state != CellState.clicked:
                     # We can return early here
                     # But we intentionally don't, since that would mean this process'
                     # running time would get longer as the board gets filled up.
