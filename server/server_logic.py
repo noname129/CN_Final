@@ -16,6 +16,11 @@ class Player:
         self.state=PlayerState.LOBBY
         self.connection=server_connection
 
+class PlayerSlotState(enum.Enum):
+    NOT_JOINED=70
+    JOINED=71
+    LEFT=72
+
 class GameInstance:
     def __init__(self, room_id, name, dimensions, mine_prob, max_players):
         self._room_id=room_id
@@ -30,6 +35,10 @@ class GameInstance:
 
         self._players=[]
         self._player_to_index=dict()
+
+        self._player_slot_state=dict()
+        for i in range(1,self._max_players+1):
+            self._player_slot_state[i]=PlayerSlotState.NOT_JOINED
 
         self._mfs=mines.MineFieldGenerator.generate_symmetrical(dimensions[0],
                                                                 dimensions[1],
@@ -89,6 +98,9 @@ class GameInstance:
     def remove_player(self,player:Player):
         self._players.remove(player)
 
+        pidx=self._player_to_index[player]
+        self._player_slot_state[pidx]=PlayerSlotState.LEFT
+
         if self._active:
             self.check_end_condition()
 
@@ -106,6 +118,9 @@ class GameInstance:
 
         self._players.append(player)
         self._player_to_index[player]=self._player_count
+
+        pidx = self._player_to_index[player]
+        self._player_slot_state[pidx] = PlayerSlotState.JOINED
 
         if self._player_count == self._max_players:
             self._active=True
@@ -131,6 +146,11 @@ class GameInstance:
 
     def player_to_index(self, player):
         return self._player_to_index[player]
+    def index_to_player(self,idx):
+        for i in self._player_to_index:
+            if self._player_to_index[i]==idx:
+                return i
+        return None
 
     @property
     def room_id(self):
@@ -154,10 +174,20 @@ class GameInstance:
     def to_ingame_room_data(self):
         index_mapping=dict()
         names_mapping=dict()
-        for p in self._players:
-            pidx=self._player_to_index[p]
-            index_mapping[pidx]=p.player_id
-            names_mapping[pidx]=p.username
+        for pidx in range(1,self._max_players+1):
+            state=self._player_slot_state[pidx]
+            if state==PlayerSlotState.NOT_JOINED:
+                names_mapping[pidx] = "WAITING"
+            elif state==PlayerSlotState.JOINED:
+                player=self.index_to_player(pidx)
+                index_mapping[pidx] = player.player_id
+                names_mapping[pidx] = player.username
+            elif state==PlayerSlotState.LEFT:
+                names_mapping[pidx] = "LEFT"
+            else:
+                print("#### UNEXPECTED PLAYERSLOTSTATE ####")
+
+
         return api_datatypes.InGameRoomParameters(
             player_index_mapping=index_mapping,
             player_names_mapping=names_mapping,

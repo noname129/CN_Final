@@ -341,7 +341,7 @@ class PlayerStatusDisplay(tkinter.Frame):
         if self._pidx in igrp.player_names_mapping:
             name=igrp.player_names_mapping[self._pidx]
         else:
-            name="(waiting)"
+            name="*ERROR*"
         self._index_display.configure(text="Player {}: {}".format(self._pidx,name))
 
 
