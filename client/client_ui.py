@@ -393,8 +393,13 @@ def _display_game(clicon:client_api.ClientSideAPI,
     def leave_game():
         clicon.ingame_leave_room(cstate.player_id, leave_success, leave_fail)
 
-    def refresh(igrp):
-        pass
+    def refresh(igrp:api_datatypes.InGameRoomParameters):
+        if igrp.max_players==2:
+            p3_psd.grid_forget()
+            p4_psd.grid_forget()
+        elif igrp.max_players==4:
+            p3_psd.grid(row=3, column=1)
+            p4_psd.grid(row=3, column=3)
     clogic.add_room_update_callbaks(refresh)
     clogic.fetch_room_params()
 
