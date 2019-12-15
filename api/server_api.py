@@ -54,6 +54,12 @@ class ServerSideAPI:
             RequestCodes.INGAME_EXPLICIT_NEWSTATE_REQUEST
         )
 
+        self._handler_leave_room = None
+        self._sp.set_handler(
+            self._raw_handle_leave_room,
+            RequestCodes.INGAME_LEAVE
+        )
+
 
         self._handler_disconnect=None
         self._sp.add_dead_pipe_listener(
@@ -225,6 +231,26 @@ class ServerSideAPI:
     def _raw_handle_explicit_newstate_request(self,data):
         player_id=json_bytes_to_object(data)["player_id"]
         self._handler_explicit_newstate_request(player_id)
+
+    def set_handler_leave_room(self, handler):
+        '''
+        Argument: player_id
+        returns: none
+        '''
+        self._handler_leave_room = handler
+
+    def _raw_handle_leave_room(self, data):
+        player_id = json_bytes_to_object(data)["player_id"]
+        try:
+            self._handler_leave_room(player_id)
+            return object_to_json_bytes({
+                "success": True,
+            })
+        except InvalidRequestException as e:
+            return object_to_json_bytes({
+                "success": False,
+                "failure_reason": str(e)
+            })
 
 
 

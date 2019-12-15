@@ -89,7 +89,7 @@ class GameInstance:
     def remove_player(self,player:Player):
         self._players.remove(player)
 
-        if self._started:
+        if self._active:
             self.check_end_condition()
 
         self.room_param_change_broadcast()
@@ -205,6 +205,9 @@ class ServerSideGameLogic():
         srvcon.set_handler_explicit_newstate_request(
             self._handle_explicit_newstate_request
         )
+        srvcon.set_handler_leave_room(
+            self._handle_leave_room
+        )
 
 
         self._connections.append(srvcon)
@@ -222,6 +225,7 @@ class ServerSideGameLogic():
         for game in self._game_list:
             if player in self._game_list[game].players:
                 return self._game_list[game]
+        return None
 
 
 
@@ -302,6 +306,16 @@ class ServerSideGameLogic():
         player.connection.send_newstateACK(
             api_datatypes.RoomMFI(0,0,0,0,0,room.room_id),
             room.mfs)
+
+    def _handle_leave_room(self, player_id):
+        self._validate_player_id(player_id)
+        player = self._user_list[player_id]
+
+        room = self.find_game_with_user(player)
+        if room is None:
+            server_api.InvalidRequestException("The player is not inside room")
+
+        room.remove_player(player)
 
 
 

@@ -179,6 +179,16 @@ class RequestCodes():
         }
     '''
 
+    INGAME_LEAVE=140
+    '''
+    INGAME_LEAVE
+    Client -> Server
+    request: (JSON)
+        {
+            "player_id": int
+        }
+    '''
+
 
 
 

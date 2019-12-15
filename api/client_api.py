@@ -230,6 +230,31 @@ class ClientSideAPI():
             None
         )
 
+    def ingame_leave_room(self, player_id, cb_success, cb_fail):
+        '''
+        Leave from current game instance.
+
+        cb_success():
+            callback function
+        cb_fail(msg):
+            callback function
+            msg: failure reason
+        '''
+
+        def callback(resp):
+            dat = json_bytes_to_object(resp)
+            if dat["success"]:
+                cb_success()
+            else:
+                cb_fail(dat["failure_reason"])
+
+        self._sp.send_request(
+            object_to_json_bytes({
+                "player_id":player_id
+            }),
+            RequestCodes.INGAME_LEAVE,
+            callback
+        )
 
 
 

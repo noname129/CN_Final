@@ -358,7 +358,6 @@ def _display_room_creation(clicon:client_api.ClientSideAPI, success_cb):
 def _display_game(clicon:client_api.ClientSideAPI,
                   cstate:client_logic.ClientState,
                   clogic:client_logic.ClientInGameLogic):
-    # TODO implement 4-player - right now this only handles 2-player.
     print("UI: game")
     root = tkinter.Toplevel()
     root.title("SWEEPERS game")
@@ -381,6 +380,18 @@ def _display_game(clicon:client_api.ClientSideAPI,
     p4_psd = ui_elements.PlayerStatusDisplay(root, clogic, 4)
     p4_psd.grid(row=3, column=3)
 
+    leavebtn = tkinter.Button(root, text="Leave")
+    leavebtn.grid(row=4, column=1, columnspan=3)
+
+    def leave_success():
+        root.destroy()
+        _display_lobby(clicon, cstate)
+
+    def leave_fail(msg):
+        tkinter.messagebox.showerror("Error", msg)
+
+    def leave_game():
+        clicon.ingame_leave_room(cstate.player_id, leave_success, leave_fail)
 
     def refresh(igrp):
         pass
@@ -388,6 +399,8 @@ def _display_game(clicon:client_api.ClientSideAPI,
     clogic.fetch_room_params()
 
     clicon.ingame_explicit_newstate_request(cstate.player_id)
+
+    leavebtn.configure(command=leave_game)
 
 
 
