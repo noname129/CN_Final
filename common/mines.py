@@ -433,6 +433,36 @@ class MineFieldGenerator:
         return cls.generate_from_minemap(data,player)
 
     @classmethod
+    def generate_symmetrical_deterministic(cls, x, y, ratio, player):
+        '''
+        Same as generate_symmetrical, but deterministic number of mines
+        '''
+
+        data = multiarray.MultiDimArray(x, y, fill=False)
+
+        center_coords = ((x - 1) / 2, (y - 1) / 2)
+
+        mines_to_place=round(x*y*ratio/2)
+
+        while mines_to_place>0:
+            coords=(random.randint(0,x-1),random.randint(0,y-1))
+
+            if data[coords]: #Mine is already present
+                continue
+
+            # Some vector math
+            delta = Tuples.sub(coords, center_coords)
+            delta_neg = Tuples.neg(delta)
+            reflected = Tuples.round(Tuples.add(center_coords, delta_neg))
+
+            data[coords] = True
+            data[reflected]=True
+            mines_to_place-=1
+
+
+        return cls.generate_from_minemap(data, player)
+
+    @classmethod
     def generate_from_minemap(cls, minemap, players=2):
         '''
         Initialize a minefield.

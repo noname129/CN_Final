@@ -40,7 +40,7 @@ class GameInstance:
         for i in range(1,self._max_players+1):
             self._player_slot_state[i]=PlayerSlotState.NOT_JOINED
 
-        self._mfs=mines.MineFieldGenerator.generate_symmetrical(dimensions[0],
+        self._mfs=mines.MineFieldGenerator.generate_symmetrical_deterministic(dimensions[0],
                                                                 dimensions[1],
                                                                 mine_prob/100,
                                                                 max_players)
