@@ -16,52 +16,52 @@ class ServerSideAPI:
             self._raw_handle_join,
             RequestCodes.JOIN
         )
-        self._handler_join=None
+        self._handler_join=lambda:None
 
-        self._handler_game_listing=None
+        self._handler_game_listing=lambda:None
         self._sp.set_handler(
             self._raw_handle_game_lsting,
             RequestCodes.GET_GAME_LISTING
         )
 
-        self._handler_game_creation=None
+        self._handler_game_creation=lambda:None
         self._sp.set_handler(
             self._raw_handle_game_creation,
             RequestCodes.CREATE_GAME
         )
 
-        self._handler_game_join = None
+        self._handler_game_join = lambda:None
         self._sp.set_handler(
             self._raw_handle_game_join,
             RequestCodes.JOIN_GAME
         )
 
-        self._handler_ingame_input = None
+        self._handler_ingame_input = lambda:None
         self._sp.set_handler(
             self._raw_handle_ingame_input,
             RequestCodes.INGAME_INPUT
         )
 
-        self._handler_fetch_room_params = None
+        self._handler_fetch_room_params = lambda:None
         self._sp.set_handler(
             self._raw_handle_fetch_room_params,
             RequestCodes.INGAME_FETCH_ROOM_PARAMS
         )
 
-        self._handler_explicit_newstate_request = None
+        self._handler_explicit_newstate_request = lambda:None
         self._sp.set_handler(
             self._raw_handle_explicit_newstate_request,
             RequestCodes.INGAME_EXPLICIT_NEWSTATE_REQUEST
         )
 
-        self._handler_leave_room = None
+        self._handler_leave_room = lambda:None
         self._sp.set_handler(
             self._raw_handle_leave_room,
             RequestCodes.INGAME_LEAVE
         )
 
 
-        self._handler_disconnect=None
+        self._handler_disconnect= lambda:None
         self._sp.add_dead_pipe_listener(
             self._raw_handle_disconnect
         )
