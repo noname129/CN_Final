@@ -250,7 +250,7 @@ class SmartPipe():
             self._buffer = self._buffer[consumed:]
         except _IncompleteFrameException:
             return False
-        print("SmartPipe received a complete frame.")
+        print("\nSmartPipe received a complete frame.")
         print(perline_prefix(str(spf)," |"))
 
         if spf.is_response:
@@ -277,7 +277,7 @@ class SmartPipe():
         return True
 
     def kill_pipe(self):
-        print("Killing SmartPipe")
+        print("\nKilling SmartPipe")
         self._as.kill_socket()
 
     def send_request(self, data, rqtype=60000, callback_function=None):
@@ -310,7 +310,7 @@ class SmartPipe():
             request_type=rqtype
         )
 
-        print("SmartPipe is sending data.")
+        print("\nSmartPipe is sending data.")
         print(perline_prefix(str(spf), " |"))
 
         if callback_function is not None:

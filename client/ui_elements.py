@@ -61,7 +61,6 @@ class LobbyDisplay(tkinter.Frame):
 
     def get_selection(self):
         selsctions = self._treeview.selection()
-        # print(selsctions)
         if selsctions:
             return self._map[selsctions[0]]
         else:
@@ -90,10 +89,9 @@ class DefaultSpriteProvider(SpriteProvider):
 
         files=os.listdir(path)
 
-        print("Loading", path, "with", len(files), "files")
+        #print("Loading", path, "with", len(files), "files")
 
         for filename in files:
-            #print(filename)
             filepath=os.path.join(path,filename)
             self._data[filename]=tkinter.PhotoImage(file=filepath)
     @classmethod
@@ -196,7 +194,6 @@ class MineDisplay3(tkinter.Frame):
     def _click_handler(self,evt):
         if not self.active:
             return
-        #print(evt.x,evt.y,evt.num,evt.type,type(evt.type))
         if evt.type==tkinter.EventType.ButtonPress:
             if evt.num==1:
                 self._current_click_type |= 1
@@ -309,7 +306,6 @@ class PlayerStatusDisplay(tkinter.Frame):
         self._cl=clogic
         self._pidx=player_index
         bgcolor=_status_display_color_scheme[player_index]
-        print(bgcolor)
 
 
         self._index_display=tkinter.Label(self,text="Player {}".format(player_index))

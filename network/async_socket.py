@@ -36,7 +36,7 @@ class AsyncSocket:
        Register a callback to be called when this socket dies.
     '''
     def __init__(self, sock, addr, port):
-        print("AsyncSocket initialized:",addr,port)
+        print("\nAsyncSocket initialized:",addr,port)
         self._addr=addr
         self._port=port
         self._sock=sock
@@ -132,7 +132,7 @@ class AsyncSocket:
             pass
 
         except Exception as err:
-            print('Error occurred: ', err)
+            print('\nError occurred: ', err)
             self._call_error_callbacks(err)
 
         self._call_close_callbacks()
@@ -166,7 +166,7 @@ class IncomingConnectionListeningThread(threading.Thread):
 
         self._sock=socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        print("Bind to...", self._host, self._port)
+        print("\nBind to...", self._host, self._port)
         self._sock.bind((self._host, self._port))
 
 

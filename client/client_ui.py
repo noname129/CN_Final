@@ -60,7 +60,6 @@ def start(*,first_window_function=(lambda : _display_connect())):
     Entry point.
     invoke this function to display the client UI.
     '''
-    print('UI: Start')
     global _tk
     _tk = tkinter.Tk()
     _tk.withdraw()
@@ -71,7 +70,6 @@ def start(*,first_window_function=(lambda : _display_connect())):
 
 
 def _display_connect():
-    print("UI: display connect")
     root=tkinter.Toplevel()
     root.title("SWEEPERS Server Connect")
     root.protocol("WM_DELETE_WINDOW", _window_close_handler)
@@ -116,7 +114,6 @@ def _display_connect():
     loginbtn.configure(command=login_callback)
 
 def _display_login(clicon:client_api.ClientSideAPI):
-    print("UI: display login")
     root = tkinter.Toplevel()
     root.title("SWEEPERS login")
     root.protocol("WM_DELETE_WINDOW", _window_close_handler)
@@ -159,7 +156,6 @@ def _display_login(clicon:client_api.ClientSideAPI):
 
 
 def _display_lobby(clicon:client_api.ClientSideAPI, cstate:client_logic.ClientState):
-    print("UI: lobby")
     root = tkinter.Toplevel()
     root.title("SWEEPERS lobby")
     root.protocol("WM_DELETE_WINDOW", _window_close_handler)
@@ -219,7 +215,6 @@ def _display_lobby(clicon:client_api.ClientSideAPI, cstate:client_logic.ClientSt
 
 
 def _display_room_creation(clicon:client_api.ClientSideAPI, success_cb):
-    print("UI: roomcreate")
     root = tkinter.Toplevel()
     root.title("SWEEPERS game create")
 
@@ -344,7 +339,6 @@ def _display_room_creation(clicon:client_api.ClientSideAPI, success_cb):
             field_size_y=int(fieldsize_spinbox_y_VAR.get()),
             mine_prob=mineprob_slider_get()
         )
-        #print(grp)
         clicon.create_game(grp, create_success, create_fail)
     create_btn.configure(command=send_create_req)
 
@@ -358,7 +352,6 @@ def _display_room_creation(clicon:client_api.ClientSideAPI, success_cb):
 def _display_game(clicon:client_api.ClientSideAPI,
                   cstate:client_logic.ClientState,
                   clogic:client_logic.ClientInGameLogic):
-    print("UI: game")
     root = tkinter.Toplevel()
     root.title("SWEEPERS game")
     root.protocol("WM_DELETE_WINDOW", _window_close_handler)
@@ -410,7 +403,7 @@ def _display_game(clicon:client_api.ClientSideAPI,
 
 
 def _window_close_handler():
-    print("Game killed")
+    print("\nGame killed")
     _run_exit_handlers()
     _tk.destroy()
 

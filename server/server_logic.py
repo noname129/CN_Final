@@ -185,7 +185,7 @@ class GameInstance:
             elif state==PlayerSlotState.LEFT:
                 names_mapping[pidx] = "LEFT"
             else:
-                print("#### UNEXPECTED PLAYERSLOTSTATE ####")
+                print("\n#### UNEXPECTED PLAYERSLOTSTATE ####")
 
 
         return api_datatypes.InGameRoomParameters(

@@ -1,6 +1,5 @@
 
 import sys
-print(sys.argv)
 
 DEFAULT_PORT = 19477
 

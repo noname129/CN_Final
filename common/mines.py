@@ -257,7 +257,6 @@ class MineFieldState:
         return scores
 
     def check_all_opened(self, player_filter=(1,2,3,4)):
-        print("CAO",player_filter)
         all_open=True
         for coords in self:
             if self[coords].owner in player_filter or self[coords].owner == 0:

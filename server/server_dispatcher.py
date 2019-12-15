@@ -21,6 +21,6 @@ def start_server(host='', port=19477):
         while True:
             time.sleep(1)
     except KeyboardInterrupt:
-        print("^C received - killing all connections")
+        print("\n^C received - killing all connections")
         gamelogic.kill_all_connections()
         async_socket.end_server(host,port)
